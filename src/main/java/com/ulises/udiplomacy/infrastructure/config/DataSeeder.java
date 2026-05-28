@@ -52,9 +52,15 @@ public class DataSeeder implements CommandLineRunner {
 
         try (InputStream is = resourceLoader.getResource("classpath:europe-classic.json").getInputStream()) {
             String json = new String(is.readAllBytes());
+            String svgContent = null;
+            try (InputStream svgIs = resourceLoader.getResource("classpath:map.svg").getInputStream()) {
+                svgContent = new String(svgIs.readAllBytes());
+            } catch (Exception e) {
+                log.warn("Could not load map SVG: {}", e.getMessage());
+            }
             MapVariant variant = new MapVariant(
                     DEFAULT_MAP_ID, "Classic Diplomacy Europe",
-                    json, null, Instant.now());
+                    json, svgContent, Instant.now());
             mapRepository.save(variant);
             log.info("Seeded default map '{}'", DEFAULT_MAP_ID);
         } catch (Exception e) {
