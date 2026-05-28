@@ -214,4 +214,14 @@ public class BeanConfiguration {
     public GetMapVariantSvgUseCase getMapVariantSvgUseCase(MapVariantRepository repository) {
         return new GetMapVariantSvgService(repository);
     }
+
+    @Bean
+    public ListUsersUseCase listUsersUseCase(UserRepository repository) {
+        return new ListUsersService(repository);
+    }
+
+    @Bean
+    public UpdateUserRoleUseCase updateUserRoleUseCase(UserRepository repository) {
+        return new UpdateUserRoleService(repository);
+    }
 }

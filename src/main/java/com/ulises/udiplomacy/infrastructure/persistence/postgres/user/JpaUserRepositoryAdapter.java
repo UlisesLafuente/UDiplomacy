@@ -4,6 +4,7 @@ import com.ulises.udiplomacy.application.port.output.UserRepository;
 import com.ulises.udiplomacy.domain.user.Role;
 import com.ulises.udiplomacy.domain.user.User;
 
+import java.util.List;
 import java.util.Optional;
 
 public class JpaUserRepositoryAdapter implements UserRepository {
@@ -32,6 +33,11 @@ public class JpaUserRepositoryAdapter implements UserRepository {
     @Override
     public boolean existsByUsername(String username) {
         return springRepository.existsByUsername(username);
+    }
+
+    @Override
+    public List<User> findAll() {
+        return springRepository.findAll().stream().map(this::toDomain).toList();
     }
 
     private User toDomain(UserEntity entity) {

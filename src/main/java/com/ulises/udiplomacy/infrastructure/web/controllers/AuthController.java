@@ -24,7 +24,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        String userId = registerUserUseCase.execute(request.username(), request.password(), request.role());
+        String userId = registerUserUseCase.execute(request.username(), request.password());
         return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponse(null, userId));
     }
 

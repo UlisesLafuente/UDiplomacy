@@ -18,16 +18,14 @@ public class RegisterUserService implements RegisterUserUseCase {
     }
 
     @Override
-    public String execute(String username, String password, String role) {
+    public String execute(String username, String password) {
         if (userRepository.existsByUsername(username)) {
             throw new IllegalArgumentException("Username already taken");
         }
 
         String userId = UUID.randomUUID().toString();
         String hashedPassword = passwordEncoder.encode(password);
-        Role userRole = role != null && role.equalsIgnoreCase("ADMIN") ? Role.ADMIN : Role.PLAYER;
-
-        User user = new User(userId, username, hashedPassword, userRole);
+        User user = new User(userId, username, hashedPassword, Role.PLAYER);
         userRepository.save(user);
         return userId;
     }

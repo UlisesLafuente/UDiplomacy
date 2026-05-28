@@ -30,7 +30,7 @@ class RegisterUserServiceTest {
         when(userRepository.existsByUsername("alice")).thenReturn(false);
         when(passwordEncoder.encode("secret")).thenReturn("hashed-secret");
 
-        String userId = service.execute("alice", "secret", null);
+        String userId = service.execute("alice", "secret");
 
         assertNotNull(userId);
         verify(userRepository).save(userCaptor.capture());
@@ -41,21 +41,10 @@ class RegisterUserServiceTest {
     }
 
     @Test
-    void registersAdmin() {
-        when(userRepository.existsByUsername("root")).thenReturn(false);
-        when(passwordEncoder.encode("admin-pass")).thenReturn("hashed-admin");
-
-        String userId = service.execute("root", "admin-pass", "ADMIN");
-
-        verify(userRepository).save(userCaptor.capture());
-        assertEquals(Role.ADMIN, userCaptor.getValue().role());
-    }
-
-    @Test
     void rejectsDuplicateUsername() {
         when(userRepository.existsByUsername("alice")).thenReturn(true);
         assertThrows(IllegalArgumentException.class,
-                () -> service.execute("alice", "secret", null));
+                () -> service.execute("alice", "secret"));
         verify(userRepository, never()).save(any());
     }
 }

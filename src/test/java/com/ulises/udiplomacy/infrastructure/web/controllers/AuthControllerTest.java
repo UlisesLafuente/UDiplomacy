@@ -26,7 +26,7 @@ class AuthControllerTest {
         AuthController controller = new AuthController(registerUserUseCase, authenticateUserUseCase);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
-        when(registerUserUseCase.execute("alice", "secret123", null))
+        when(registerUserUseCase.execute("alice", "secret123"))
                 .thenReturn("user-1");
         when(authenticateUserUseCase.execute("alice", "secret123"))
                 .thenReturn("jwt-token");
@@ -37,7 +37,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegisterRequest("alice", "secret123", null))))
+                                new RegisterRequest("alice", "secret123"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.userId").value("user-1"));
     }
@@ -57,7 +57,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegisterRequest("", "secret123", null))))
+                                new RegisterRequest("", "secret123"))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -66,7 +66,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegisterRequest("alice", "ab", null))))
+                                new RegisterRequest("alice", "ab"))))
                 .andExpect(status().isBadRequest());
     }
 
