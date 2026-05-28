@@ -1,0 +1,162 @@
+package com.ulises.udiplomacy.domain.game.services;
+
+import com.ulises.udiplomacy.domain.game.*;
+import com.ulises.udiplomacy.domain.game.enums.OrderResult;
+import com.ulises.udiplomacy.domain.game.enums.OrderType;
+import com.ulises.udiplomacy.domain.game.enums.UnitType;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.List;
+import java.util.Map;
+
+class ConflictResolverTest {
+
+    private ConflictResolver resolver;
+    private GameMap map;
+    private Nation germany;
+    private Nation france;
+
+    @BeforeEach
+    void setUp() {
+        resolver = new ConflictResolver();
+        map = TestMapLoader.loadClassic();
+        germany = new Nation("GERMANY");
+        france = new Nation("FRANCE");
+    }
+
+    @Test
+    void allHold_noDislodgements() {
+        var units = List.of(
+                new Unit(UnitType.ARMY, germany, new Territory("MUN")),
+                new Unit(UnitType.FLEET, france, new Territory("BRE"))
+        );
+        var orders = List.of(
+                new Order(OrderType.HOLD, units.get(0), new Territory("MUN"), null, null),
+                new Order(OrderType.HOLD, units.get(1), new Territory("BRE"), null, null)
+        );
+        ResolutionResult result = resolver.resolve(orders, units, map);
+        assertTrue(result.dislodgementResult().dislodgedUnits().isEmpty());
+        assertTrue(result.dislodgementResult().contestedProvinces().isEmpty());
+        assertEquals(2, result.orderResults().size());
+        result.orderResults().values().forEach(r -> assertEquals(OrderResult.SUCCESS, r));
+    }
+
+    @Test
+    void moveToEmptyProvince_noDislodgements() {
+        var unit = new Unit(UnitType.ARMY, germany, new Territory("MUN"));
+        var orders = List.of(
+                new Order(OrderType.MOVE, unit, new Territory("MUN"), new Territory("BUR"), null)
+        );
+        ResolutionResult result = resolver.resolve(orders, List.of(unit), map);
+        assertTrue(result.dislodgementResult().dislodgedUnits().isEmpty());
+        assertTrue(result.dislodgementResult().contestedProvinces().isEmpty());
+    }
+
+    @Test
+    void unsupportedAttackOnHold_fails() {
+        var attacker = new Unit(UnitType.ARMY, germany, new Territory("MUN"));
+        var defender = new Unit(UnitType.ARMY, france, new Territory("BUR"));
+        var orders = List.of(
+                new Order(OrderType.MOVE, attacker, new Territory("MUN"), new Territory("BUR"), null),
+                new Order(OrderType.HOLD, defender, new Territory("BUR"), null, null)
+        );
+        ResolutionResult result = resolver.resolve(orders, List.of(attacker, defender), map);
+        assertTrue(result.dislodgementResult().dislodgedUnits().isEmpty());
+        assertTrue(result.dislodgementResult().contestedProvinces().isEmpty());
+    }
+
+    @Test
+    void supportedAttack_dislodgesDefender() {
+        var attacker = new Unit(UnitType.ARMY, germany, new Territory("MUN"));
+        var supporter = new Unit(UnitType.ARMY, germany, new Territory("RUH"));
+        var defender = new Unit(UnitType.ARMY, france, new Territory("BUR"));
+
+        Order moveOrder = new Order(OrderType.MOVE, attacker,
+                new Territory("MUN"), new Territory("BUR"), null);
+        Order supportOrder = new Order(OrderType.SUPPORT, supporter,
+                new Territory("RUH"), new Territory("BUR"), new Territory("MUN"));
+        Order holdOrder = new Order(OrderType.HOLD, defender,
+                new Territory("BUR"), null, null);
+
+        var orders = List.of(moveOrder, supportOrder, holdOrder);
+        var units = List.of(attacker, supporter, defender);
+
+        ResolutionResult result = resolver.resolve(orders, units, map);
+        assertFalse(result.dislodgementResult().dislodgedUnits().isEmpty());
+        assertTrue(result.dislodgementResult().dislodgedUnits().containsKey(defender));
+
+        List<Territory> options = result.dislodgementResult().dislodgedUnits().get(defender);
+        assertTrue(options.contains(new Territory("BEL")));
+        assertTrue(options.contains(new Territory("PAR")));
+        assertTrue(options.contains(new Territory("GAS")));
+        assertTrue(options.contains(new Territory("BOH")));
+        assertTrue(options.contains(new Territory("GAL")));
+        assertEquals(5, options.size());
+        assertFalse(options.contains(new Territory("MUN")));
+        assertFalse(options.contains(new Territory("RUH")));
+    }
+
+    @Test
+    void supportedDefense_repelsAttack() {
+        var attacker = new Unit(UnitType.ARMY, germany, new Territory("MUN"));
+        var defender = new Unit(UnitType.ARMY, france, new Territory("BUR"));
+        var supporter = new Unit(UnitType.ARMY, france, new Territory("PAR"));
+
+        Order moveOrder = new Order(OrderType.MOVE, attacker,
+                new Territory("MUN"), new Territory("BUR"), null);
+        Order holdOrder = new Order(OrderType.HOLD, defender,
+                new Territory("BUR"), null, null);
+        Order supportOrder = new Order(OrderType.SUPPORT, supporter,
+                new Territory("PAR"), new Territory("BUR"), new Territory("BUR"));
+
+        var orders = List.of(moveOrder, holdOrder, supportOrder);
+        var units = List.of(attacker, defender, supporter);
+
+        ResolutionResult result = resolver.resolve(orders, units, map);
+        assertTrue(result.dislodgementResult().dislodgedUnits().isEmpty());
+        assertTrue(result.dislodgementResult().contestedProvinces().isEmpty());
+    }
+
+    @Test
+    void contestedProvince_neitherMoveSucceeds() {
+        var attacker1 = new Unit(UnitType.ARMY, germany, new Territory("MUN"));
+        var attacker2 = new Unit(UnitType.ARMY, france, new Territory("PAR"));
+
+        Order move1 = new Order(OrderType.MOVE, attacker1,
+                new Territory("MUN"), new Territory("BUR"), null);
+        Order move2 = new Order(OrderType.MOVE, attacker2,
+                new Territory("PAR"), new Territory("BUR"), null);
+
+        var orders = List.of(move1, move2);
+        var units = List.of(attacker1, attacker2);
+
+        ResolutionResult result = resolver.resolve(orders, units, map);
+        assertTrue(result.dislodgementResult().dislodgedUnits().isEmpty());
+        assertEquals(1, result.dislodgementResult().contestedProvinces().size());
+        assertTrue(result.dislodgementResult().contestedProvinces().contains("BUR"));
+    }
+
+    @Test
+    void unitMovingFromProvince_excludedFromRetreatOptions() {
+        var attacker = new Unit(UnitType.ARMY, germany, new Territory("RUH"));
+        var defender = new Unit(UnitType.ARMY, france, new Territory("BUR"));
+        var supporter = new Unit(UnitType.ARMY, germany, new Territory("MUN"));
+
+        Order moveOrder = new Order(OrderType.MOVE, attacker,
+                new Territory("RUH"), new Territory("BUR"), null);
+        Order supportOrder = new Order(OrderType.SUPPORT, supporter,
+                new Territory("MUN"), new Territory("BUR"), new Territory("RUH"));
+        Order holdOrder = new Order(OrderType.HOLD, defender,
+                new Territory("BUR"), null, null);
+
+        List<Territory> options = resolver.resolve(
+                List.of(moveOrder, supportOrder, holdOrder),
+                List.of(attacker, defender, supporter), map)
+                .dislodgementResult().dislodgedUnits().get(defender);
+
+        assertNotNull(options);
+        assertFalse(options.contains(new Territory("RUH")));
+    }
+}
