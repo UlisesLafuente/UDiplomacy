@@ -39,9 +39,18 @@ function nationColor(name: string): string {
   return `hsl(${hue}, 65%, 50%)`
 }
 
-function getBBox(el: Element): DOMRect | null {
+function elementCenter(el: Element, svg: SVGSVGElement): { x: number; y: number } | null {
   try {
-    return (el as SVGGraphicsElement).getBBox()
+    const rect = (el as Element).getBoundingClientRect()
+    if (!rect.width && !rect.height) return null
+    const ctm = svg.getScreenCTM?.() || svg.getCTM()
+    if (!ctm) return null
+    const inv = ctm.inverse()
+    const pt = svg.createSVGPoint()
+    pt.x = rect.left + rect.width / 2
+    pt.y = rect.top + rect.height / 2
+    const svgPt = pt.matrixTransform(inv)
+    return { x: svgPt.x, y: svgPt.y }
   } catch {
     return null
   }
@@ -50,21 +59,23 @@ function getBBox(el: Element): DOMRect | null {
 export function getProvinceCenter(svg: SVGSVGElement, code: string) {
   const path = svg.getElementById(`provincia-${code}`)
   if (!path) return null
-  const bbox = getBBox(path)
-  if (!bbox) return null
-  return { x: bbox.x + bbox.width / 2, y: bbox.y + bbox.height / 2 }
+  return elementCenter(path, svg)
 }
 
 export function getAllProvinceCenters(svg: SVGSVGElement): Record<string, { x: number; y: number }> {
   const centers: Record<string, { x: number; y: number }> = {}
-  const paths = svg.querySelectorAll('[data-code]')
+  const paths = svg.querySelectorAll('[id^="provincia-"]')
+  console.log('getAllProvinceCenters: found', paths.length, 'paths')
   paths.forEach((path) => {
-    const code = path.getAttribute('data-code')
-    if (!code) return
-    const bbox = getBBox(path)
-    if (!bbox) return
-    centers[code] = { x: bbox.x + bbox.width / 2, y: bbox.y + bbox.height / 2 }
+    const id = path.getAttribute('id')
+    if (!id) return
+    const code = id.replace('provincia-', '')
+    const ctr = elementCenter(path, svg)
+    if (!ctr) return
+    centers[code] = ctr
   })
+  const firstKey = Object.keys(centers)[0]
+  if (firstKey) console.log('getAllProvinceCenters: first center', firstKey, centers[firstKey])
   return centers
 }
 
@@ -96,6 +107,7 @@ export async function renderUnit(
   unitSvg.setAttribute('viewBox', '0 0 50 50')
 
   const g = document.createElementNS(SVG_NS, 'g')
+  g.setAttribute('class', 'game-overlay')
   g.setAttribute('transform', `translate(${center.x - 25}, ${center.y - 25})`)
   g.appendChild(unitSvg)
 
@@ -122,6 +134,7 @@ export function addArrow(
   const path = document.createElementNS(SVG_NS, 'path')
   const mx = (from.x + to.x) / 2
   const my = (from.y + to.y) / 2 - 10
+  path.setAttribute('class', 'game-overlay')
   path.setAttribute('d', `M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`)
   path.setAttribute('stroke', color)
   path.setAttribute('stroke-width', '2.5')
@@ -140,6 +153,7 @@ export function addFailureCross(
   const mx = (from.x + to.x) / 2
   const my = (from.y + to.y) / 2 - 20
   const text = document.createElementNS(SVG_NS, 'text')
+  text.setAttribute('class', 'game-overlay')
   text.setAttribute('x', String(mx))
   text.setAttribute('y', String(my))
   text.setAttribute('fill', '#e74c3c')

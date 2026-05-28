@@ -7,6 +7,8 @@ import {
   getProvinceCenter,
   getAllProvinceCenters,
   renderUnit,
+  addArrow,
+  addFailureCross,
   svgNs,
 } from '@/utils/map'
 import type { Game } from '@/types'
@@ -36,6 +38,10 @@ export default function GameDetail() {
 
     svg.querySelectorAll('.game-overlay').forEach((el) => el.remove())
 
+    svg.querySelectorAll('[id^="provincia-"]').forEach((path) => {
+      (path as HTMLElement).style.fill = ''
+    })
+
     g.units.forEach((u) => {
       const path = svg.getElementById(`provincia-${u.province}`)
       if (path) {
@@ -43,11 +49,36 @@ export default function GameDetail() {
       }
     })
 
+    const centerKeys = Object.keys(centersRef.current)
+    console.log('Centers count:', centerKeys.length)
+    if (g.units.length > 0) {
+      const u = g.units[0]
+      const center = centersRef.current[u.province]
+      const fallback = getProvinceCenter(svg, u.province)
+      console.log('First unit:', u.province, 'center:', center, 'fallback:', fallback)
+    }
+
     for (const u of g.units) {
       const center = centersRef.current[u.province] || getProvinceCenter(svg, u.province)
       if (!center) continue
       await renderUnit(u, center, svg)
     }
+
+    g.lastResolvedOrders.forEach((o, i) => {
+      if (!o.target) return
+      const fromCenter = centersRef.current[o.source] || getProvinceCenter(svg, o.source)
+      const toCenter = centersRef.current[o.target] || getProvinceCenter(svg, o.target)
+      if (!fromCenter || !toCenter) return
+      const success = g.lastResolvedResults[i] === 'SUCCESS'
+      if (o.type === 'MOVE' || o.type === 'RETREAT') {
+        addArrow(svg, fromCenter, toCenter, success ? '#27ae60' : '#e74c3c', !success)
+      } else if ((o.type === 'SUPPORT' || o.type === 'CONVOY') && !success) {
+        addArrow(svg, fromCenter, toCenter, '#e74c3c', true)
+      }
+      if (!success) {
+        addFailureCross(svg, fromCenter, toCenter)
+      }
+    })
   }, [])
 
   const loadMapSvg = async () => {
