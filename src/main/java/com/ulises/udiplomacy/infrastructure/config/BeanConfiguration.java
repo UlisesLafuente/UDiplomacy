@@ -200,7 +200,18 @@ public class BeanConfiguration {
     }
 
     @Bean
-    public CreateMapVariantUseCase createMapVariantUseCase(MapVariantRepository repository) {
-        return new CreateMapVariantService(repository);
+    public SvgValidator svgValidator() {
+        return new SvgValidator();
+    }
+
+    @Bean
+    public CreateMapVariantUseCase createMapVariantUseCase(MapVariantRepository repository,
+                                                            SvgValidator svgValidator) {
+        return new CreateMapVariantService(repository, svgValidator);
+    }
+
+    @Bean
+    public GetMapVariantSvgUseCase getMapVariantSvgUseCase(MapVariantRepository repository) {
+        return new GetMapVariantSvgService(repository);
     }
 }
