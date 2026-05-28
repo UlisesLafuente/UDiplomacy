@@ -42,8 +42,6 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/udiplomacy
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/udiplomacy
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
     depends_on:

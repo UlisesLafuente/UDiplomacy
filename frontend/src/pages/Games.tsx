@@ -21,7 +21,7 @@ export default function Games() {
     setCreating(true)
     try {
       const game = await games.create({ mapId: selectedMapId || undefined })
-      navigate(`/games/${game.id}`)
+      navigate(`/games/${game.gameId}`)
     } catch {
       setCreating(false)
     }
@@ -72,17 +72,17 @@ export default function Games() {
             onClick={() => navigate(`/games/${g.gameId}`)}
           >
             <div>
-              <p className="font-medium">{g.name}</p>
+              <p className="font-medium">{g.gameName}</p>
               <p className="text-sm text-gray-500">
-                {g.state} · {new Date(g.updatedAt).toLocaleDateString()}
+                {g.status} · {new Date(g.createdAt).toLocaleDateString()}
               </p>
             </div>
             <span
               className={`rounded-full px-3 py-1 text-xs font-medium ${
-                g.state === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                g.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
               }`}
             >
-              {g.state === 'IN_PROGRESS' ? 'En curso' : 'Finalizada'}
+              {g.status === 'IN_PROGRESS' ? 'En curso' : 'Finalizada'}
             </span>
           </div>
         ))}

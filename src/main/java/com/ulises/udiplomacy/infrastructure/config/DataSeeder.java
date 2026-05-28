@@ -36,8 +36,12 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        seedDefaultMap();
-        seedAdminUser();
+        try { seedDefaultMap(); } catch (Exception e) {
+            log.warn("Could not seed default map: {}", e.getMessage());
+        }
+        try { seedAdminUser(); } catch (Exception e) {
+            log.warn("Could not seed admin user: {}", e.getMessage());
+        }
     }
 
     private void seedDefaultMap() {

@@ -2,7 +2,7 @@ export type ProvinceType = 'INLAND' | 'COASTAL' | 'SEA'
 export type UnitType = 'ARMY' | 'FLEET'
 export type OrderType = 'HOLD' | 'MOVE' | 'SUPPORT' | 'CONVOY' | 'RETREAT' | 'BUILD' | 'DISBAND'
 export type OrderResult = 'SUCCESS' | 'FAILURE'
-export type GameState = 'IN_PROGRESS' | 'FINISHED'
+export type GameStatus = 'IN_PROGRESS' | 'FINISHED'
 export type Phase = 'ORDERS' | 'RETREAT' | 'BUILD'
 export type Season = 'SPRING' | 'AUTUMN'
 export type Role = 'PLAYER' | 'ADMIN'
@@ -26,7 +26,7 @@ export interface Unit {
 export interface Order {
   unitType: UnitType
   source: string
-  orderType: OrderType
+  type: string
   target: string | null
   auxiliary: string | null
 }
@@ -40,21 +40,30 @@ export interface Turn {
 }
 
 export interface Game {
-  id: string
+  gameId: string
   mapName: string
-  state: GameState
-  currentYear: number
-  currentSeason: Season
-  currentPhase: Phase
+  state: string
+  season: string
+  year: number
+  phase: string
   nations: string[]
   units: Unit[]
   pendingOrders: Order[]
   lastResolvedOrders: Order[]
-  lastResolvedResults: OrderResult[]
-  history: Turn[]
+  lastResolvedResults: string[]
+  history: HistoryEntry[]
   winner: string | null
   dislodgedUnits: Unit[]
   buildCapacities: BuildCapacity[]
+}
+
+export interface HistoryEntry {
+  season: string
+  year: number
+  phase: string
+  units: Unit[]
+  orders: Order[]
+  results: string[]
 }
 
 export interface BuildCapacity {
@@ -65,10 +74,9 @@ export interface BuildCapacity {
 
 export interface GameReference {
   gameId: string
-  name: string
-  state: GameState
+  gameName: string
+  status: string
   createdAt: string
-  updatedAt: string
 }
 
 export interface MapVariant {
@@ -92,7 +100,6 @@ export interface LoginRequest {
 export interface RegisterRequest {
   username: string
   password: string
-  role?: Role
 }
 
 export interface CreateGameRequest {

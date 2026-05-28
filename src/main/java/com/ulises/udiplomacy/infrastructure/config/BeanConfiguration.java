@@ -20,10 +20,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ResourceLoader;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Configuration
 public class BeanConfiguration {
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return JsonMapper.builder().build();
+    }
 
     @Bean
     public GameRepository gameRepository(SpringDataMongoGameRepository springRepo) {

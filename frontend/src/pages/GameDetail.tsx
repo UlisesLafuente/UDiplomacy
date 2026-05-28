@@ -155,7 +155,7 @@ export default function GameDetail() {
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-bold">{game.mapName}</h1>
           <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-            {game.currentSeason} {game.currentYear} · {game.currentPhase}
+            {game.season} {game.year} · {game.phase}
           </span>
           {game.winner && (
             <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700">
@@ -235,7 +235,7 @@ export default function GameDetail() {
                 {game.pendingOrders.map((o, i) => (
                   <div key={i} className="flex items-center justify-between rounded bg-gray-50 px-2 py-1 text-sm">
                     <span>
-                      {o.unitType} {o.source} {o.orderType}
+                      {o.unitType} {o.source} {o.type}
                       {o.target ? ` - ${o.target}` : ''}
                     </span>
                     <button onClick={() => removeOrder(i)} className="text-xs text-red-500 hover:text-red-700">
@@ -261,7 +261,7 @@ export default function GameDetail() {
                       }`}
                     >
                       <span className="font-mono text-xs">
-                        {o.unitType} {o.source} {o.orderType}
+                        {o.unitType} {o.source} {o.type}
                         {o.target ? ` - ${o.target}` : ''}
                       </span>
                       <span className="ml-auto text-xs font-bold">
@@ -313,7 +313,7 @@ export default function GameDetail() {
                         }`}
                       >
                         <span>
-                          {o.unitType} {o.source} {o.orderType}
+                          {o.unitType} {o.source} {o.type}
                           {o.target ? ` - ${o.target}` : ''}
                         </span>
                         <span className="ml-auto">{turn.results[oi] === 'SUCCESS' ? '✓' : '✕'}</span>

@@ -8,6 +8,7 @@ import java.util.Map;
 
 public record GameResponse(
         String gameId,
+        String mapName,
         String state,
         String season,
         int year,
@@ -16,6 +17,7 @@ public record GameResponse(
         List<String> nations,
         List<OrderResponse> pendingOrders,
         List<OrderResponse> lastResolvedOrders,
+        List<String> lastResolvedResults,
         List<HistoryEntry> history
 ) {
     public static GameResponse from(Game game) {
@@ -39,6 +41,7 @@ public record GameResponse(
 
         return new GameResponse(
                 game.gameId(),
+                game.gameMap().name(),
                 game.state().name(),
                 game.currentTurn().season().name(),
                 game.currentTurn().year(),
@@ -47,6 +50,9 @@ public record GameResponse(
                 game.nations().stream().map(Nation::name).toList(),
                 game.orderPool().orders().stream().map(OrderResponse::from).toList(),
                 lastResolved.stream().map(OrderResponse::from).toList(),
+                lastResolved.stream()
+                        .map(o -> lastResults.getOrDefault(o, OrderResult.SUCCESS).name())
+                        .toList(),
                 history
         );
     }

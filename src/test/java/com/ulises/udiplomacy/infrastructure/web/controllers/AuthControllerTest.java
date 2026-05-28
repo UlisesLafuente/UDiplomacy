@@ -5,6 +5,7 @@ import com.ulises.udiplomacy.application.port.input.AuthenticateUserUseCase;
 import com.ulises.udiplomacy.application.port.input.RegisterUserUseCase;
 import com.ulises.udiplomacy.infrastructure.web.dto.request.LoginRequest;
 import com.ulises.udiplomacy.infrastructure.web.dto.request.RegisterRequest;
+import com.ulises.udiplomacy.infrastructure.web.security.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,23 +24,25 @@ class AuthControllerTest {
     AuthControllerTest() {
         RegisterUserUseCase registerUserUseCase = mock(RegisterUserUseCase.class);
         AuthenticateUserUseCase authenticateUserUseCase = mock(AuthenticateUserUseCase.class);
-        AuthController controller = new AuthController(registerUserUseCase, authenticateUserUseCase);
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        JwtTokenProvider tokenProvider = mock(JwtTokenProvider.class);
+        AuthController controller = new AuthController(registerUserUseCase, authenticateUserUseCase, tokenProvider);
 
-        when(registerUserUseCase.execute("alice", "secret123"))
-                .thenReturn("user-1");
-        when(authenticateUserUseCase.execute("alice", "secret123"))
-                .thenReturn("jwt-token");
+        when(registerUserUseCase.execute("alice", "secret123")).thenReturn("user-1");
+        when(authenticateUserUseCase.execute("alice", "secret123")).thenReturn("jwt-token");
+        when(tokenProvider.roleFromToken("jwt-token")).thenReturn("PLAYER");
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
     @Test
-    void register_returns201AndUserId() throws Exception {
+    void register_returns201AndToken() throws Exception {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
                                 new RegisterRequest("alice", "secret123"))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.userId").value("user-1"));
+                .andExpect(jsonPath("$.token").value("jwt-token"))
+                .andExpect(jsonPath("$.username").value("alice"))
+                .andExpect(jsonPath("$.role").value("PLAYER"));
     }
 
     @Test
@@ -49,7 +52,9 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(
                                 new LoginRequest("alice", "secret123"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("jwt-token"));
+                .andExpect(jsonPath("$.token").value("jwt-token"))
+                .andExpect(jsonPath("$.username").value("alice"))
+                .andExpect(jsonPath("$.role").value("PLAYER"));
     }
 
     @Test
