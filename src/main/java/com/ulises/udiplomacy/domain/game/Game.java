@@ -258,8 +258,7 @@ public final class Game {
             if (order.type() == com.ulises.udiplomacy.domain.game.enums.OrderType.BUILD) {
                 order.target().ifPresent(target -> {
                     if (gameMap.province(target.provinceName())
-                            .map(p -> p.isCoastal() == (order.unit().unitType() == UnitType.FLEET)
-                                    || p.isInland())
+                            .map(p -> order.unit().unitType() == UnitType.ARMY || p.isCoastal())
                             .orElse(false)) {
                         Nation nation = null;
                         for (Nation n : nations) {

@@ -19,6 +19,7 @@ class ConflictResolverTest {
     private Nation france;
     private Nation austria;
     private Nation russia;
+    private Nation turkey;
 
     @BeforeEach
     void setUp() {
@@ -28,6 +29,7 @@ class ConflictResolverTest {
         france = new Nation("FRANCE");
         austria = new Nation("AUSTRIA");
         russia = new Nation("RUSSIA");
+        turkey = new Nation("TURKEY");
     }
 
     @Test
@@ -159,6 +161,34 @@ class ConflictResolverTest {
         assertTrue(result.dislodgementResult().contestedProvinces().isEmpty());
         assertEquals(OrderResult.FAILURE, result.orderResults().get(invalidMove));
         assertEquals(OrderResult.SUCCESS, result.orderResults().get(validMove));
+    }
+
+    @Test
+    void fleetCannotMoveViaLandAdjacency() {
+        var fleet = new Unit(UnitType.FLEET, austria, new Territory("BUL"));
+        var army = new Unit(UnitType.ARMY, austria, new Territory("BUL"));
+
+        Order fleetMove = new Order(OrderType.MOVE, fleet,
+                new Territory("BUL"), new Territory("GRE"), null);
+        Order armyMove = new Order(OrderType.MOVE, army,
+                new Territory("BUL"), new Territory("GRE"), null);
+
+        var fleetResult = resolver.resolve(List.of(fleetMove), List.of(fleet), map);
+        assertEquals(OrderResult.FAILURE, fleetResult.orderResults().get(fleetMove));
+
+        var armyResult = resolver.resolve(List.of(armyMove), List.of(army), map);
+        assertEquals(OrderResult.SUCCESS, armyResult.orderResults().get(armyMove));
+    }
+
+    @Test
+    void fleetCanMoveViaCoastalAdjacency() {
+        var fleet = new Unit(UnitType.FLEET, turkey, new Territory("CON"));
+
+        Order fleetMove = new Order(OrderType.MOVE, fleet,
+                new Territory("CON"), new Territory("BUL"), null);
+
+        var result = resolver.resolve(List.of(fleetMove), List.of(fleet), map);
+        assertEquals(OrderResult.SUCCESS, result.orderResults().get(fleetMove));
     }
 
     @Test

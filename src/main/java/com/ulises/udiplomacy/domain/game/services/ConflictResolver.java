@@ -170,6 +170,15 @@ public final class ConflictResolver {
                 invalidSources.add(source);
                 continue;
             }
+            // Fleet must move via coastal adjacency (non-null coast)
+            if (order.unit().unitType() == com.ulises.udiplomacy.domain.game.enums.UnitType.FLEET) {
+                Coast srcCoast = srcProv.adjacencies().get(target);
+                Coast tgtCoast = tgtProv.adjacencies().get(source);
+                if (srcCoast == null && tgtCoast == null) {
+                    invalidSources.add(source);
+                    continue;
+                }
+            }
             // Army to sea
             if (order.unit().unitType() == com.ulises.udiplomacy.domain.game.enums.UnitType.ARMY
                     && tgtProv.isSea()) {

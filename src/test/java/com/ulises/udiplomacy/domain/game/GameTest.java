@@ -459,4 +459,26 @@ class GameTest {
         assertEquals(Season.SPRING, game.currentTurn().season());
         assertEquals(1902, game.currentTurn().year());
     }
+
+    @Test
+    void provinceOwnership_retainsSourceAfterSuccessfulMove() {
+        game.start(List.of(englishArmy));
+        // Move LON -> WAL (Wales is coastal, adjacent to LON)
+        var move = new Order(OrderType.MOVE, englishArmy, new Territory("LON"), new Territory("WAL"), null);
+        game.submitOrder(move);
+
+        when(resolver.resolve(any(), any(), any())).thenReturn(
+                new ResolutionResult(new DislodgementResult(Map.of(), Set.of()),
+                        Map.of(move, OrderResult.SUCCESS)));
+        game.executeOrders(resolver);
+
+        assertTrue(game.provinceOwnership().containsKey("LON"),
+                "Source province should remain in provinceOwnership after unit leaves");
+        assertEquals(england, game.provinceOwnership().get("LON"),
+                "Source province should still be owned by the original nation");
+        assertTrue(game.provinceOwnership().containsKey("WAL"),
+                "Target province should be added to provinceOwnership");
+        assertEquals(england, game.provinceOwnership().get("WAL"),
+                "Target province should be owned by the moving unit's nation");
+    }
 }

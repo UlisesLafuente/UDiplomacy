@@ -61,11 +61,7 @@ export default function GameDetail() {
 
     svg.querySelectorAll('.game-overlay').forEach((el) => el.remove())
 
-    svg.querySelectorAll('[id^="provincia-"]').forEach((path) => {
-      (path as HTMLElement).style.fill = ''
-    })
-
-    for (const [province, nation] of Object.entries(g.provinceOwnership)) {
+    for (const [province, nation] of Object.entries(g.provinceOwnership ?? {})) {
       const path = svg.getElementById(`provincia-${province}`)
       if (path) {
         (path as HTMLElement).style.fill = getNationColor(nation)
@@ -81,11 +77,24 @@ export default function GameDetail() {
     g.pendingOrders.forEach((o) => {
       if (!o.target) return
       const fromCenter = centersRef.current[o.source] || getProvinceCenter(svg, o.source)
-      const toCenter = centersRef.current[o.target] || getProvinceCenter(svg, o.target)
-      if (!fromCenter || !toCenter) return
+      if (!fromCenter) return
+
       if (o.type === 'MOVE' || o.type === 'RETREAT') {
+        const toCenter = centersRef.current[o.target] || getProvinceCenter(svg, o.target)
+        if (!toCenter) return
         addArrow(svg, fromCenter, toCenter, '#555', false)
       } else if (o.type === 'SUPPORT' || o.type === 'CONVOY') {
+        const toCenter = centersRef.current[o.target] || getProvinceCenter(svg, o.target)
+        if (!toCenter) return
+        if (o.auxiliary) {
+          const auxCenter = centersRef.current[o.auxiliary] || getProvinceCenter(svg, o.auxiliary)
+          if (auxCenter) {
+            const midX = (toCenter.x + auxCenter.x) / 2
+            const midY = (toCenter.y + auxCenter.y) / 2
+            addArrow(svg, fromCenter, { x: midX, y: midY }, '#555', true)
+            return
+          }
+        }
         addArrow(svg, fromCenter, toCenter, '#555', true)
       }
     })
