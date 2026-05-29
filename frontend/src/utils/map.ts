@@ -101,14 +101,15 @@ export async function renderUnit(
   const svgText = await getUnitSvg(type)
   const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml')
   const unitSvg = doc.documentElement
+  const sz = 75
   unitSvg.setAttribute('style', `color: ${color}`)
-  unitSvg.setAttribute('width', '50')
-  unitSvg.setAttribute('height', '50')
+  unitSvg.setAttribute('width', `${sz}`)
+  unitSvg.setAttribute('height', `${sz}`)
   unitSvg.setAttribute('viewBox', '0 0 50 50')
 
   const g = document.createElementNS(SVG_NS, 'g')
   g.setAttribute('class', 'game-overlay')
-  g.setAttribute('transform', `translate(${center.x - 25}, ${center.y - 25})`)
+  g.setAttribute('transform', `translate(${center.x - sz / 2}, ${center.y - sz / 2})`)
   g.appendChild(unitSvg)
 
   if (flag) {
