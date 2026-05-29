@@ -9,6 +9,7 @@ import type {
   SubmitOrderRequest,
   MapVariant,
   CreateMapVariantRequest,
+  RetreatOptionsResponse,
 } from '@/types'
 
 export const auth = {
@@ -33,6 +34,8 @@ export const games = {
     api.post(`/games/${gameId}/execute`),
   retreat: (gameId: string, orders: string[]) =>
     api.post(`/games/${gameId}/retreats`, orders.map((o) => ({ rawOrder: o }))),
+  retreatOptions: (gameId: string) =>
+    api.get<RetreatOptionsResponse>(`/games/${gameId}/retreat-options`).then((r) => r.data),
   build: (gameId: string, orders: string[]) =>
     api.post(`/games/${gameId}/builds`, orders.map((o) => ({ rawOrder: o }))),
   undo: (gameId: string) =>

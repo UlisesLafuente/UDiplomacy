@@ -55,6 +55,7 @@ export interface Game {
   winner: string | null
   dislodgedUnits: Unit[]
   buildCapacities: BuildCapacity[]
+  provinceOwnership: Record<string, string>
 }
 
 export interface HistoryEntry {
@@ -70,6 +71,18 @@ export interface BuildCapacity {
   nation: string
   buildsAvailable: number
   disbandsRequired: number
+  availableProvinces: string[]
+}
+
+export interface RetreatOptionsResponse {
+  units: DislodgedUnitOptions[]
+}
+
+export interface DislodgedUnitOptions {
+  type: string
+  nation: string
+  province: string
+  retreatOptions: string[]
 }
 
 export interface GameReference {

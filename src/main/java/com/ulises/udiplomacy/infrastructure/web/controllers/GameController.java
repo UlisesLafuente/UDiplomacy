@@ -1,15 +1,13 @@
 package com.ulises.udiplomacy.infrastructure.web.controllers;
 
 import com.ulises.udiplomacy.application.port.input.*;
-import com.ulises.udiplomacy.domain.game.DislodgementResult;
-import com.ulises.udiplomacy.domain.game.Game;
-import com.ulises.udiplomacy.domain.game.Nation;
-import com.ulises.udiplomacy.domain.game.BuildCapacity;
+import com.ulises.udiplomacy.domain.game.*;
 import com.ulises.udiplomacy.domain.user.GameReference;
 import com.ulises.udiplomacy.infrastructure.web.dto.request.CreateGameRequest;
 import com.ulises.udiplomacy.infrastructure.web.dto.request.SubmitOrderRequest;
 import com.ulises.udiplomacy.infrastructure.web.dto.response.GameReferenceResponse;
 import com.ulises.udiplomacy.infrastructure.web.dto.response.GameResponse;
+import com.ulises.udiplomacy.infrastructure.web.dto.response.RetreatOptionsResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +15,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/games")
@@ -132,9 +129,17 @@ public class GameController {
     }
 
     @GetMapping("/{gameId}/retreat-options")
-    public ResponseEntity<DislodgementResult> getRetreatOptions(@PathVariable String gameId) {
+    public ResponseEntity<RetreatOptionsResponse> getRetreatOptions(@PathVariable String gameId) {
         DislodgementResult result = getPendingDislodgedUnitsUseCase.execute(gameId);
-        return ResponseEntity.ok(result);
+        var units = result.dislodgedUnits().entrySet().stream()
+                .map(e -> new RetreatOptionsResponse.DislodgedUnitOptions(
+                        e.getKey().unitType().name(),
+                        e.getKey().nation().name(),
+                        e.getKey().location().provinceName(),
+                        e.getValue().stream().map(Territory::provinceName).toList()
+                ))
+                .toList();
+        return ResponseEntity.ok(new RetreatOptionsResponse(units));
     }
 
     @GetMapping("/{gameId}/build-options")

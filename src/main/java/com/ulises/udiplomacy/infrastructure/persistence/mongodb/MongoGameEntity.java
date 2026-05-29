@@ -18,6 +18,8 @@ public class MongoGameEntity {
     private List<String> nations;
     private List<MongoOrderData> orderPool;
     private String winner;
+    private MongoDislodgementData dislodgement;
+    private Map<String, String> provinceOwnership;
 
     public MongoGameEntity() {}
 
@@ -30,6 +32,12 @@ public class MongoGameEntity {
         this.nations = game.nations().stream().map(Nation::name).toList();
         this.orderPool = game.orderPool().orders().stream().map(MongoOrderData::new).toList();
         this.winner = game.winner().map(Nation::name).orElse(null);
+        this.dislodgement = game.dislodgementResult()
+                .map(MongoDislodgementData::new).orElse(null);
+        this.provinceOwnership = new HashMap<>();
+        for (var entry : game.provinceOwnership().entrySet()) {
+            this.provinceOwnership.put(entry.getKey(), entry.getValue().name());
+        }
     }
 
     public Game toDomain() {
@@ -50,9 +58,118 @@ public class MongoGameEntity {
         }
         Nation restoredWinner = winner != null ? new Nation(winner) : null;
 
+        Map<String, Nation> restoredOwnership = new HashMap<>();
+        if (provinceOwnership != null) {
+            for (var entry : provinceOwnership.entrySet()) {
+                restoredOwnership.put(entry.getKey(), new Nation(entry.getValue()));
+            }
+        }
+
         game.restore(restoredState, restoredCurrentTurn, restoredHistory,
-                restoredPool, null, restoredWinner);
+                restoredPool,
+                dislodgement != null ? dislodgement.toDomain() : null,
+                restoredWinner,
+                restoredOwnership);
         return game;
+    }
+
+    // --- MongoDislodgementData ---
+
+    static class MongoDislodgementData {
+        private List<MongoDislodgedEntry> dislodgedUnits;
+        private List<String> contestedProvinces;
+
+        public MongoDislodgementData() {}
+
+        MongoDislodgementData(DislodgementResult dr) {
+            this.dislodgedUnits = dr.dislodgedUnits().entrySet().stream()
+                    .map(e -> new MongoDislodgedEntry(e.getKey(), e.getValue()))
+                    .toList();
+            this.contestedProvinces = new ArrayList<>(dr.contestedProvinces());
+        }
+
+        DislodgementResult toDomain() {
+            Map<Unit, List<Territory>> map = new HashMap<>();
+            if (dislodgedUnits != null) {
+                for (MongoDislodgedEntry entry : dislodgedUnits) {
+                    map.put(entry.toUnit(), entry.toRetreatOptions());
+                }
+            }
+            Set<String> contested = contestedProvinces != null
+                    ? new HashSet<>(contestedProvinces) : new HashSet<>();
+            return new DislodgementResult(map, contested);
+        }
+
+        public List<MongoDislodgedEntry> getDislodgedUnits() { return dislodgedUnits; }
+        public void setDislodgedUnits(List<MongoDislodgedEntry> dislodgedUnits) { this.dislodgedUnits = dislodgedUnits; }
+        public List<String> getContestedProvinces() { return contestedProvinces; }
+        public void setContestedProvinces(List<String> contestedProvinces) { this.contestedProvinces = contestedProvinces; }
+    }
+
+    static class MongoDislodgedEntry {
+        private String unitType;
+        private String nation;
+        private String province;
+        private String coast;
+        private List<MongoTerritoryEntry> retreatOptions;
+
+        public MongoDislodgedEntry() {}
+
+        MongoDislodgedEntry(Unit u, List<Territory> options) {
+            this.unitType = u.unitType().name();
+            this.nation = u.nation().name();
+            this.province = u.location().provinceName();
+            this.coast = u.location().coast().map(Coast::name).orElse(null);
+            this.retreatOptions = options.stream().map(MongoTerritoryEntry::new).toList();
+        }
+
+        Unit toUnit() {
+            Territory loc = coast != null
+                    ? new Territory(province, new Coast(coast))
+                    : new Territory(province);
+            return new Unit(UnitType.valueOf(unitType),
+                    nation != null ? new Nation(nation) : null, loc);
+        }
+
+        List<Territory> toRetreatOptions() {
+            return retreatOptions != null
+                    ? retreatOptions.stream().map(MongoTerritoryEntry::toDomain).toList()
+                    : List.of();
+        }
+
+        public String getUnitType() { return unitType; }
+        public void setUnitType(String unitType) { this.unitType = unitType; }
+        public String getNation() { return nation; }
+        public void setNation(String nation) { this.nation = nation; }
+        public String getProvince() { return province; }
+        public void setProvince(String province) { this.province = province; }
+        public String getCoast() { return coast; }
+        public void setCoast(String coast) { this.coast = coast; }
+        public List<MongoTerritoryEntry> getRetreatOptions() { return retreatOptions; }
+        public void setRetreatOptions(List<MongoTerritoryEntry> retreatOptions) { this.retreatOptions = retreatOptions; }
+    }
+
+    static class MongoTerritoryEntry {
+        private String province;
+        private String coast;
+
+        public MongoTerritoryEntry() {}
+
+        MongoTerritoryEntry(Territory t) {
+            this.province = t.provinceName();
+            this.coast = t.coast().map(Coast::name).orElse(null);
+        }
+
+        Territory toDomain() {
+            return coast != null
+                    ? new Territory(province, new Coast(coast))
+                    : new Territory(province);
+        }
+
+        public String getProvince() { return province; }
+        public void setProvince(String province) { this.province = province; }
+        public String getCoast() { return coast; }
+        public void setCoast(String coast) { this.coast = coast; }
     }
 
     // --- MongoMapData ---

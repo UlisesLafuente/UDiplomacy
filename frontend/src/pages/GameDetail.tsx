@@ -8,10 +8,9 @@ import {
   getAllProvinceCenters,
   renderUnit,
   addArrow,
-  addFailureCross,
   svgNs,
 } from '@/utils/map'
-import type { Game } from '@/types'
+import type { Game, RetreatOptionsResponse } from '@/types'
 
 export default function GameDetail() {
   const { id } = useParams<{ id: string }>()
@@ -25,11 +24,35 @@ export default function GameDetail() {
   const svgRef = useRef<SVGSVGElement>(null)
   const centersRef = useRef<Record<string, { x: number; y: number }>>({})
 
+  // Retreat panel state
+  const [retreatOptions, setRetreatOptions] = useState<RetreatOptionsResponse | null>(null)
+  const [retreatSelections, setRetreatSelections] = useState<Record<string, string>>({})
+
+  // Build panel state: map of nation -> array of build/disband orders
+  interface BuildEntry {
+    type: 'build' | 'disband'
+    value: string  // "unitType province" for build, "province" for disband
+  }
+  const [buildSelections, setBuildSelections] = useState<Record<string, BuildEntry[]>>({})
+
   const fetchGame = useCallback(async () => {
     if (!id) return
     const g = await games.get(id)
     setGame(g)
     return g
+  }, [id])
+
+  const fetchRetreatOptions = useCallback(async () => {
+    if (!id) return
+    try {
+      const opts = await games.retreatOptions(id)
+      setRetreatOptions(opts)
+      setRetreatSelections(
+        Object.fromEntries(opts.units.map((u) => [u.province, '']))
+      )
+    } catch {
+      setRetreatOptions(null)
+    }
   }, [id])
 
   const renderMap = useCallback(async (g: Game) => {
@@ -42,20 +65,11 @@ export default function GameDetail() {
       (path as HTMLElement).style.fill = ''
     })
 
-    g.units.forEach((u) => {
-      const path = svg.getElementById(`provincia-${u.province}`)
+    for (const [province, nation] of Object.entries(g.provinceOwnership)) {
+      const path = svg.getElementById(`provincia-${province}`)
       if (path) {
-        (path as HTMLElement).style.fill = getNationColor(u.nation)
+        (path as HTMLElement).style.fill = getNationColor(nation)
       }
-    })
-
-    const centerKeys = Object.keys(centersRef.current)
-    console.log('Centers count:', centerKeys.length)
-    if (g.units.length > 0) {
-      const u = g.units[0]
-      const center = centersRef.current[u.province]
-      const fallback = getProvinceCenter(svg, u.province)
-      console.log('First unit:', u.province, 'center:', center, 'fallback:', fallback)
     }
 
     for (const u of g.units) {
@@ -64,19 +78,15 @@ export default function GameDetail() {
       await renderUnit(u, center, svg)
     }
 
-    g.lastResolvedOrders.forEach((o, i) => {
+    g.pendingOrders.forEach((o) => {
       if (!o.target) return
       const fromCenter = centersRef.current[o.source] || getProvinceCenter(svg, o.source)
       const toCenter = centersRef.current[o.target] || getProvinceCenter(svg, o.target)
       if (!fromCenter || !toCenter) return
-      const success = g.lastResolvedResults[i] === 'SUCCESS'
       if (o.type === 'MOVE' || o.type === 'RETREAT') {
-        addArrow(svg, fromCenter, toCenter, success ? '#27ae60' : '#e74c3c', !success)
-      } else if ((o.type === 'SUPPORT' || o.type === 'CONVOY') && !success) {
-        addArrow(svg, fromCenter, toCenter, '#e74c3c', true)
-      }
-      if (!success) {
-        addFailureCross(svg, fromCenter, toCenter)
+        addArrow(svg, fromCenter, toCenter, '#555', false)
+      } else if (o.type === 'SUPPORT' || o.type === 'CONVOY') {
+        addArrow(svg, fromCenter, toCenter, '#555', true)
       }
     })
   }, [])
@@ -88,7 +98,6 @@ export default function GameDetail() {
         headers: { Authorization: `Bearer ${token}` }
       })
       const svgText = await resp.text()
-      console.log('SVG loaded, length:', svgText.length)
       if (svgRef.current && svgRef.current.parentNode) {
         const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml')
         const parseErr = doc.querySelector('parsererror')
@@ -107,9 +116,6 @@ export default function GameDetail() {
           svgRef.current = newSvg
           ensureArrowDefs(newSvg)
           centersRef.current = getAllProvinceCenters(newSvg)
-          console.log('SVG rendered, centers:', Object.keys(centersRef.current).length)
-        } else {
-          console.error('No svg element found in parsed document')
         }
       }
     } catch (e) {
@@ -128,7 +134,22 @@ export default function GameDetail() {
   useEffect(() => {
     if (!game) return
     renderMap(game)
-  }, [game, renderMap])
+    if (game.phase === 'RETREAT') {
+      fetchRetreatOptions()
+    } else {
+      setRetreatOptions(null)
+      setRetreatSelections({})
+    }
+    if (game.phase === 'BUILD') {
+      const init: Record<string, BuildEntry[]> = {}
+      for (const bc of game.buildCapacities) {
+        init[bc.nation] = []
+      }
+      setBuildSelections(init)
+    } else {
+      setBuildSelections({})
+    }
+  }, [game, renderMap, fetchRetreatOptions])
 
   const submitOrder = async () => {
     if (!id || !orderText.trim()) return
@@ -153,19 +174,69 @@ export default function GameDetail() {
     await fetchGame()
   }
 
-  const handleRetreat = async () => {
-    if (!id) return
-    const orders = prompt('Retreat orders (comma separated):')
-    if (!orders) return
-    await games.retreat(id, orders.split(',').map((o) => o.trim()))
+  const confirmRetreats = async () => {
+    if (!id || !retreatOptions) return
+    const orders: string[] = []
+    for (const u of retreatOptions.units) {
+      const target = retreatSelections[u.province]
+      if (target && target !== '') {
+        orders.push(`${u.type === 'ARMY' ? 'A' : 'F'} ${u.province} R ${target}`)
+      }
+      // empty = disband, no order needed
+    }
+    await games.retreat(id, orders)
+    setRetreatOptions(null)
+    setRetreatSelections({})
     await fetchGame()
   }
 
-  const handleBuild = async () => {
+  const addBuildEntry = (nation: string) => {
+    setBuildSelections((prev) => ({
+      ...prev,
+      [nation]: [...(prev[nation] || []), { type: 'build' as const, value: '' }],
+    }))
+  }
+
+  const addDisbandEntry = (nation: string) => {
+    setBuildSelections((prev) => ({
+      ...prev,
+      [nation]: [...(prev[nation] || []), { type: 'disband' as const, value: '' }],
+    }))
+  }
+
+  const updateBuildEntry = (nation: string, index: number, entry: BuildEntry) => {
+    setBuildSelections((prev) => {
+      const updated = [...(prev[nation] || [])]
+      updated[index] = entry
+      return { ...prev, [nation]: updated }
+    })
+  }
+
+  const removeBuildEntry = (nation: string, index: number) => {
+    setBuildSelections((prev) => {
+      const updated = [...(prev[nation] || [])]
+      updated.splice(index, 1)
+      return { ...prev, [nation]: updated }
+    })
+  }
+
+  const confirmBuilds = async () => {
     if (!id) return
-    const orders = prompt('Build/disband orders (comma separated):')
-    if (!orders) return
-    await games.build(id, orders.split(',').map((o) => o.trim()))
+    const orders: string[] = []
+    for (const [, entries] of Object.entries(buildSelections)) {
+      for (const entry of entries) {
+        if (!entry.value) continue
+        if (entry.type === 'build') {
+          const [unitType, province] = entry.value.split(' ')
+          orders.push(`${unitType} ${province} B ${province}`)
+        } else {
+          orders.push(`A ${entry.value} D`)
+        }
+      }
+    }
+    if (orders.length === 0) return
+    await games.build(id, orders)
+    setBuildSelections({})
     await fetchGame()
   }
 
@@ -192,6 +263,18 @@ export default function GameDetail() {
     const h = await games.history(id)
     setHistory(h)
     setShowHistory(!showHistory)
+  }
+
+  const nationUnits = (nation: string) =>
+    game?.units.filter((u) => u.nation === nation) ?? []
+
+  const freeHomeProvinces = (nation: string) => {
+    if (!game) return []
+    const bc = game.buildCapacities.find((b) => b.nation === nation)
+    if (!bc) return []
+    return bc.availableProvinces.filter(
+      (p) => !game!.units.some((u) => u.province === p)
+    )
   }
 
   return (
@@ -239,15 +322,11 @@ export default function GameDetail() {
             {game && <>
               {/* Game controls */}
               <div className="mb-4 flex flex-wrap gap-2">
-                <button onClick={executeOrders} className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700">
-                  Execute
-                </button>
-                <button onClick={handleRetreat} className="rounded bg-orange-500 px-3 py-1.5 text-sm text-white hover:bg-orange-600">
-                  Retreats
-                </button>
-                <button onClick={handleBuild} className="rounded bg-purple-600 px-3 py-1.5 text-sm text-white hover:bg-purple-700">
-                  Builds
-                </button>
+                {game.phase === 'ORDERS' && (
+                  <button onClick={executeOrders} className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700">
+                    Execute
+                  </button>
+                )}
                 <button onClick={undo} className="rounded bg-gray-500 px-3 py-1.5 text-sm text-white hover:bg-gray-600">
                   Undo
                 </button>
@@ -259,22 +338,154 @@ export default function GameDetail() {
                 </button>
               </div>
 
-              {/* Order input */}
-              <div className="mb-4">
-                <label className="mb-1 block text-sm font-medium">New order</label>
-                <div className="flex gap-2">
-                  <input
-                    value={orderText}
-                    onChange={(e) => setOrderText(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && submitOrder()}
-                    placeholder="A LON H"
-                    className="flex-1 rounded border px-3 py-1.5 text-sm"
-                  />
-                  <button onClick={submitOrder} className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700">
-                    Send
+              {/* Order input — only show in ORDERS phase */}
+              {game.phase === 'ORDERS' && (
+                <div className="mb-4">
+                  <label className="mb-1 block text-sm font-medium">New order</label>
+                  <div className="flex gap-2">
+                    <input
+                      value={orderText}
+                      onChange={(e) => setOrderText(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && submitOrder()}
+                      placeholder="A LON H"
+                      className="flex-1 rounded border px-3 py-1.5 text-sm"
+                    />
+                    <button onClick={submitOrder} className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700">
+                      Send
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Retreat panel */}
+              {game.phase === 'RETREAT' && retreatOptions && (
+                <div className="mb-4 rounded border border-orange-200 bg-orange-50 p-3">
+                  <h3 className="mb-2 text-sm font-semibold text-orange-800">Retreats</h3>
+                  {retreatOptions.units.map((u) => (
+                    <div key={u.province} className="mb-2">
+                      <label className="mb-1 block text-xs font-medium text-gray-700">
+                        {u.type} {u.province} ({u.nation})
+                      </label>
+                      <select
+                        value={retreatSelections[u.province] ?? ''}
+                        onChange={(e) =>
+                          setRetreatSelections((prev) => ({
+                            ...prev,
+                            [u.province]: e.target.value,
+                          }))
+                        }
+                        className="w-full rounded border px-2 py-1 text-sm"
+                      >
+                        <option value="">(disband)</option>
+                        {u.retreatOptions.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                  <button
+                    onClick={confirmRetreats}
+                    className="mt-2 rounded bg-orange-600 px-3 py-1.5 text-sm text-white hover:bg-orange-700"
+                  >
+                    Confirm retreats
                   </button>
                 </div>
-              </div>
+              )}
+
+              {/* Build panel */}
+              {game.phase === 'BUILD' && (
+                <div className="mb-4 rounded border border-purple-200 bg-purple-50 p-3">
+                  <h3 className="mb-2 text-sm font-semibold text-purple-800">Builds / Disbands</h3>
+                  {game.buildCapacities.map((bc) => {
+                    const entries = buildSelections[bc.nation] ?? []
+                    const units = nationUnits(bc.nation)
+                    const freeHomes = freeHomeProvinces(bc.nation)
+                    return (
+                      <div key={bc.nation} className="mb-3 rounded border border-purple-100 bg-white p-2">
+                        <div className="mb-1 flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-700">{bc.nation}</span>
+                          <span className="text-xs text-gray-500">
+                            {bc.buildsAvailable > 0 && `+${bc.buildsAvailable} `}
+                            {bc.disbandsRequired > 0 && `-${bc.disbandsRequired} `}
+                          </span>
+                        </div>
+                        {entries.map((entry, ei) => (
+                          <div key={ei} className="mb-1 flex items-center gap-1">
+                            {entry.type === 'build' ? (
+                              <select
+                                value={entry.value}
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  updateBuildEntry(bc.nation, ei, { type: 'build', value: val })
+                                }}
+                                className="flex-1 rounded border px-2 py-1 text-xs"
+                              >
+                                <option value="">(build)</option>
+                                {freeHomes.map((p) => {
+                                  return (
+                                    <optgroup key={p} label={p}>
+                                      <option value={`A ${p}`}>A {p}</option>
+                                      <option value={`F ${p}`}>F {p}</option>
+                                    </optgroup>
+                                  )
+                                })}
+                              </select>
+                            ) : (
+                              <select
+                                value={entry.value}
+                                onChange={(e) => {
+                                  const val = e.target.value
+                                  updateBuildEntry(bc.nation, ei, { type: 'disband', value: val })
+                                }}
+                                className="flex-1 rounded border px-2 py-1 text-xs"
+                              >
+                                <option value="">(disband)</option>
+                                {units.map((u) => (
+                                  <option key={u.province} value={u.province}>
+                                    {u.type === 'ARMY' ? 'A' : 'F'} {u.province}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                            <button
+                              onClick={() => removeBuildEntry(bc.nation, ei)}
+                              className="text-xs text-red-500 hover:text-red-700"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        <div className="flex gap-1">
+                          {bc.buildsAvailable > 0 && (
+                            <button
+                              onClick={() => addBuildEntry(bc.nation)}
+                              className="rounded bg-purple-100 px-2 py-0.5 text-xs text-purple-700 hover:bg-purple-200"
+                            >
+                              + Build
+                            </button>
+                          )}
+                          {bc.disbandsRequired > 0 && (
+                            <button
+                              onClick={() => addDisbandEntry(bc.nation)}
+                              className="rounded bg-red-100 px-2 py-0.5 text-xs text-red-700 hover:bg-red-200"
+                            >
+                              + Disband
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <button
+                    onClick={confirmBuilds}
+                    className="mt-2 rounded bg-purple-600 px-3 py-1.5 text-sm text-white hover:bg-purple-700"
+                  >
+                    Confirm builds
+                  </button>
+                </div>
+              )}
 
               {/* Pending orders */}
               <div className="mb-4">

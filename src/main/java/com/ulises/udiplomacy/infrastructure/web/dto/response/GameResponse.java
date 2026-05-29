@@ -3,8 +3,8 @@ package com.ulises.udiplomacy.infrastructure.web.dto.response;
 import com.ulises.udiplomacy.domain.game.*;
 import com.ulises.udiplomacy.domain.game.enums.OrderResult;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public record GameResponse(
         String gameId,
@@ -18,7 +18,10 @@ public record GameResponse(
         List<OrderResponse> pendingOrders,
         List<OrderResponse> lastResolvedOrders,
         List<String> lastResolvedResults,
-        List<HistoryEntry> history
+        List<HistoryEntry> history,
+        List<UnitResponse> dislodgedUnits,
+        List<BuildCapacityResponse> buildCapacities,
+        Map<String, String> provinceOwnership
 ) {
     public static GameResponse from(Game game) {
         var lastResolved = game.turnHistory().isEmpty()
@@ -39,6 +42,35 @@ public record GameResponse(
                 ))
                 .toList();
 
+        var dislodged = game.dislodgementResult()
+                .map(dr -> dr.dislodgedUnits().keySet().stream()
+                        .map(UnitResponse::from)
+                        .toList())
+                .orElse(List.of());
+
+        var buildCapacities = game.nations().stream()
+                .map(n -> {
+                    var opts = game.getBuildOptions(n);
+                    var availableProvinces = game.gameMap().homeCentersFor(n).stream()
+                            .map(Province::name)
+                            .filter(p -> game.currentTurn().units().stream()
+                                    .noneMatch(u -> u.location().provinceName().equals(p)))
+                            .sorted()
+                            .toList();
+                    return new BuildCapacityResponse(
+                            n.name(),
+                            opts.buildsAllowed(),
+                            opts.disbandsRequired(),
+                            availableProvinces
+                    );
+                })
+                .toList();
+
+        var ownership = new HashMap<String, String>();
+        for (var entry : game.provinceOwnership().entrySet()) {
+            ownership.put(entry.getKey(), entry.getValue().name());
+        }
+
         return new GameResponse(
                 game.gameId(),
                 game.gameMap().name(),
@@ -53,7 +85,10 @@ public record GameResponse(
                 lastResolved.stream()
                         .map(o -> lastResults.getOrDefault(o, OrderResult.SUCCESS).name())
                         .toList(),
-                history
+                history,
+                dislodged,
+                buildCapacities,
+                ownership
         );
     }
 
@@ -81,4 +116,7 @@ public record GameResponse(
             );
         }
     }
+
+    public record BuildCapacityResponse(String nation, int buildsAvailable, int disbandsRequired,
+                                         List<String> availableProvinces) {}
 }

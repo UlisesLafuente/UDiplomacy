@@ -5,16 +5,20 @@ import com.ulises.udiplomacy.domain.game.enums.Phase;
 import com.ulises.udiplomacy.domain.game.enums.Season;
 import com.ulises.udiplomacy.domain.game.enums.UnitType;
 import com.ulises.udiplomacy.domain.game.enums.OrderResult;
+import com.ulises.udiplomacy.domain.game.enums.OrderType;
 import com.ulises.udiplomacy.domain.game.events.DomainEvent;
 import com.ulises.udiplomacy.domain.game.events.GameFinished;
 import com.ulises.udiplomacy.domain.game.events.GameStarted;
 import com.ulises.udiplomacy.domain.game.events.PhaseEnded;
 import com.ulises.udiplomacy.domain.game.events.TurnEnded;
 import com.ulises.udiplomacy.domain.game.services.ConflictResolver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public final class Game {
+    private static final Logger log = LoggerFactory.getLogger(Game.class);
     private static final int WIN_CONDITION_SCS = 18;
 
     private final String gameId;
@@ -27,6 +31,7 @@ public final class Game {
     private DislodgementResult dislodgementResult;
     private Nation winner;
     private final List<DomainEvent> events;
+    private final Map<String, Nation> provinceOwnership;
 
     public Game(String gameId, GameMap gameMap, Set<Nation> nations) {
         this.gameId = gameId;
@@ -37,6 +42,7 @@ public final class Game {
         this.turnHistory = new ArrayList<>();
         this.events = new ArrayList<>();
         this.currentTurn = new Turn(Season.SPRING, 1901, Phase.ORDERS, List.of());
+        this.provinceOwnership = new HashMap<>();
     }
 
     public void start(List<Unit> initialUnits) {
@@ -45,7 +51,13 @@ public final class Game {
         }
         state = GameState.IN_PROGRESS;
         currentTurn = new Turn(Season.SPRING, 1901, Phase.ORDERS, initialUnits);
+        provinceOwnership.clear();
+        for (Unit u : initialUnits) {
+            provinceOwnership.put(u.location().provinceName(), u.nation());
+        }
         events.add(new GameStarted(gameId, new HashSet<>(nations)));
+        log.info("Game {} started. Spring 1901. Nations: {}. Units: {}",
+                gameId, nations, initialUnits.size());
     }
 
     public void submitOrder(Order order) {
@@ -53,6 +65,10 @@ public final class Game {
             throw new IllegalStateException("Game is not in progress");
         }
         orderPool.add(order);
+        log.debug("Game {} | Order submitted: {} {} -> {} aux={}",
+                gameId, order.unit().unitType(), order.source().provinceName(),
+                order.target().map(Territory::provinceName).orElse("-"),
+                order.auxiliary().map(Territory::provinceName).orElse("-"));
     }
 
     public ResolutionResult executeOrders(ConflictResolver resolver) {
@@ -64,23 +80,72 @@ public final class Game {
         }
 
         autoFillHolds();
+        log.info("Game {} | Resolving {} orders ({} submitted + auto-fill) | {} {} {}",
+                gameId, orderPool.orders().size(),
+                orderPool.orders().stream().filter(o -> o.type() != OrderType.HOLD).count(),
+                currentTurn.season(), currentTurn.year(), currentTurn.phase());
         ResolutionResult resolution = resolver.resolve(orderPool.orders(), currentTurn.units(), gameMap);
         this.dislodgementResult = resolution.dislodgementResult();
 
         currentTurn = currentTurn.withOrdersResolved(orderPool.orders(), resolution.orderResults());
+
+        // Match stub units (from OrderParser, nation=null) to actual game units
+        Map<String, Unit> actualUnitsByProvince = new HashMap<>();
+        for (Unit u : currentTurn.units()) {
+            actualUnitsByProvince.put(u.location().provinceName(), u);
+        }
+
+        // Apply successful moves and remove dislodged units
+        List<Unit> updatedUnits = new ArrayList<>(currentTurn.units());
+        List<String> movesLog = new ArrayList<>();
+        for (var entry : resolution.orderResults().entrySet()) {
+            Order order = entry.getKey();
+            if (order.type() == OrderType.MOVE
+                    && entry.getValue() == OrderResult.SUCCESS) {
+                Unit actualUnit = actualUnitsByProvince.get(order.source().provinceName());
+                if (actualUnit != null) {
+                    updatedUnits.remove(actualUnit);
+                    order.target().ifPresent(target -> {
+                        updatedUnits.add(actualUnit.relocatedTo(target));
+                        provinceOwnership.put(target.provinceName(), actualUnit.nation());
+                        movesLog.add(actualUnit.nation() + " " + actualUnit.unitType()
+                                + " " + order.source().provinceName() + " -> " + target.provinceName());
+                    });
+                }
+            }
+        }
+        if (!movesLog.isEmpty()) {
+            log.info("Game {} | Successful moves: {}", gameId, String.join(", ", movesLog));
+        }
+        Set<String> dislodgedLog = new LinkedHashSet<>();
+        for (Unit dislodged : resolution.dislodgementResult().dislodgedUnits().keySet()) {
+            updatedUnits.remove(dislodged);
+            dislodgedLog.add(dislodged.nation() + " " + dislodged.unitType()
+                    + " in " + dislodged.location().provinceName());
+        }
+        if (!dislodgedLog.isEmpty()) {
+            log.info("Game {} | Dislodged: {}", gameId, String.join(", ", dislodgedLog));
+        }
+        currentTurn = currentTurn.withUnits(updatedUnits);
+
         events.add(new PhaseEnded(gameId, currentTurn.phase().name(), resolution.dislodgementResult()));
 
         if (resolution.dislodgementResult().hasDislodgedUnits()) {
             currentTurn = currentTurn.withPhase(Phase.RETREAT);
+            log.info("Game {} | Phase -> RETREAT ({})", gameId, currentTurn.season() + " " + currentTurn.year());
         } else if (currentTurn.season() == Season.AUTUMN) {
             currentTurn = currentTurn.withPhase(Phase.BUILD);
+            log.info("Game {} | Phase -> BUILD ({})", gameId, currentTurn.season() + " " + currentTurn.year());
         } else {
             advanceToNextTurn();
+            log.info("Game {} | Phase -> ORDERS ({})", gameId, currentTurn.season() + " " + currentTurn.year());
         }
         orderPool = new OrderPool();
 
         if (checkVictory()) {
             events.add(new GameFinished(gameId, winner, finalScores()));
+            log.info("Game {} | VICTORY: {} wins with {} SCs",
+                    gameId, winner, countControlledSupplyCenters().get(winner));
         }
 
         return resolution;
@@ -95,19 +160,57 @@ public final class Game {
             throw new IllegalArgumentException("Only RETREAT and DISBAND orders allowed in retreat phase");
         }
 
-        var newUnits = new ArrayList<>(currentTurn.units());
+        // Validate no duplicate units by province
+        Set<String> seenProvinces = new HashSet<>();
         for (Order order : retreatOrders) {
-            newUnits.remove(order.unit());
-            if (order.type() == com.ulises.udiplomacy.domain.game.enums.OrderType.RETREAT) {
-                order.target().ifPresent(target ->
-                        newUnits.add(order.unit().relocatedTo(target)));
+            if (!seenProvinces.add(order.source().provinceName())) {
+                throw new IllegalArgumentException("Duplicate retreat/disband for unit in "
+                        + order.source().provinceName());
             }
+        }
+
+        Map<String, Nation> dislodgedNations = new HashMap<>();
+        if (dislodgementResult != null) {
+            for (Unit u : dislodgementResult.dislodgedUnits().keySet()) {
+                dislodgedNations.put(u.location().provinceName(), u.nation());
+            }
+        }
+
+        var newUnits = new ArrayList<>(currentTurn.units());
+        List<String> retreatLog = new ArrayList<>();
+        List<String> disbandLog = new ArrayList<>();
+        for (Order order : retreatOrders) {
+            Nation nation = dislodgedNations.get(order.source().provinceName());
+            if (order.type() == com.ulises.udiplomacy.domain.game.enums.OrderType.RETREAT) {
+                order.target().ifPresent(target -> {
+                    if (nation != null) {
+                        var relocatedUnit = new Unit(order.unit().unitType(), nation,
+                                new Territory(target.provinceName()));
+                        newUnits.add(relocatedUnit);
+                        provinceOwnership.put(target.provinceName(), nation);
+                        retreatLog.add(nation + " " + order.unit().unitType()
+                                + " " + order.source().provinceName() + " -> " + target.provinceName());
+                    }
+                });
+            } else {
+                if (nation != null) {
+                    disbandLog.add(nation + " " + order.unit().unitType()
+                            + " in " + order.source().provinceName());
+                }
+            }
+        }
+        if (!retreatLog.isEmpty()) {
+            log.info("Game {} | Retreats: {}", gameId, String.join(", ", retreatLog));
+        }
+        if (!disbandLog.isEmpty()) {
+            log.info("Game {} | Disbands: {}", gameId, String.join(", ", disbandLog));
         }
         currentTurn = currentTurn.withUnits(newUnits);
         this.dislodgementResult = null;
 
         if (currentTurn.season() == Season.AUTUMN) {
             currentTurn = currentTurn.withPhase(Phase.BUILD);
+            log.info("Game {} | Phase -> BUILD ({} {})", gameId, currentTurn.season(), currentTurn.year());
         } else {
             advanceToNextTurn();
         }
@@ -126,7 +229,31 @@ public final class Game {
             throw new IllegalArgumentException("Only BUILD and DISBAND orders allowed in build phase");
         }
 
+        // Validate no duplicate provinces for builds, no duplicate units for disbands
+        Set<String> buildProvinces = new HashSet<>();
+        Set<String> disbandProvinces = new HashSet<>();
+        for (Order order : buildOrders) {
+            if (order.type() == com.ulises.udiplomacy.domain.game.enums.OrderType.BUILD) {
+                String targetProv = order.target().map(Territory::provinceName).orElse(null);
+                if (targetProv != null && !buildProvinces.add(targetProv)) {
+                    throw new IllegalArgumentException("Duplicate build in province " + targetProv);
+                }
+            } else {
+                if (!disbandProvinces.add(order.source().provinceName())) {
+                    throw new IllegalArgumentException("Duplicate disband for unit in "
+                            + order.source().provinceName());
+                }
+            }
+        }
+
+        Map<String, Unit> actualUnitsByProvince = new HashMap<>();
+        for (Unit u : currentTurn.units()) {
+            actualUnitsByProvince.put(u.location().provinceName(), u);
+        }
+
         var newUnits = new ArrayList<>(currentTurn.units());
+        List<String> buildLog = new ArrayList<>();
+        List<String> disbandLog = new ArrayList<>();
         for (Order order : buildOrders) {
             if (order.type() == com.ulises.udiplomacy.domain.game.enums.OrderType.BUILD) {
                 order.target().ifPresent(target -> {
@@ -134,17 +261,41 @@ public final class Game {
                             .map(p -> p.isCoastal() == (order.unit().unitType() == UnitType.FLEET)
                                     || p.isInland())
                             .orElse(false)) {
-                        newUnits.add(order.unit());
+                        Nation nation = null;
+                        for (Nation n : nations) {
+                            if (gameMap.homeCentersFor(n).stream()
+                                    .anyMatch(p -> p.name().equals(target.provinceName()))) {
+                                nation = n;
+                                break;
+                            }
+                        }
+                        var newUnit = new Unit(order.unit().unitType(), nation,
+                                new Territory(target.provinceName()));
+                        newUnits.add(newUnit);
+                        buildLog.add(nation + " " + order.unit().unitType()
+                                + " in " + target.provinceName());
                     }
                 });
             } else {
-                newUnits.remove(order.unit());
+                Unit actualUnit = actualUnitsByProvince.get(order.source().provinceName());
+                if (actualUnit != null) {
+                    newUnits.remove(actualUnit);
+                    disbandLog.add(actualUnit.nation() + " " + actualUnit.unitType()
+                            + " in " + actualUnit.location().provinceName());
+                }
             }
+        }
+        if (!buildLog.isEmpty()) {
+            log.info("Game {} | Builds: {}", gameId, String.join(", ", buildLog));
+        }
+        if (!disbandLog.isEmpty()) {
+            log.info("Game {} | Disbands: {}", gameId, String.join(", ", disbandLog));
         }
         currentTurn = currentTurn.withUnits(newUnits);
         events.add(new TurnEnded(gameId, currentTurn.year(), currentTurn.season().name()));
 
         advanceToNextTurn();
+        log.info("Game {} | Turn ended. New turn: {} {}", gameId, currentTurn.season(), currentTurn.year());
 
         if (checkVictory()) {
             events.add(new GameFinished(gameId, winner, finalScores()));
@@ -183,7 +334,10 @@ public final class Game {
         if (state != GameState.IN_PROGRESS) {
             throw new IllegalStateException("Game is not in progress");
         }
-        return orderPool.remove(index);
+        Order removed = orderPool.remove(index);
+        log.debug("Game {} | Order removed [{}]: {} {} {}", gameId, index,
+                removed.unit().unitType(), removed.type(), removed.source().provinceName());
+        return removed;
     }
 
     public void undoLastTurn() {
@@ -193,6 +347,7 @@ public final class Game {
         currentTurn = turnHistory.removeLast();
         orderPool = new OrderPool();
         dislodgementResult = null;
+        log.info("Game {} | Undo to {}", gameId, currentTurn.season() + " " + currentTurn.year() + " " + currentTurn.phase());
     }
 
     public void rewindToTurn(int turnIndex) {
@@ -203,6 +358,7 @@ public final class Game {
         turnHistory.subList(turnIndex, turnHistory.size()).clear();
         orderPool = new OrderPool();
         dislodgementResult = null;
+        log.info("Game {} | Rewind to turn {}: {}", gameId, turnIndex, currentTurn.season() + " " + currentTurn.year());
     }
 
     public void autoFillHolds() {
@@ -214,6 +370,12 @@ public final class Game {
         var unitsWithoutOrders = currentTurn.units().stream()
                 .filter(u -> orderedUnits.stream().noneMatch(u::equals))
                 .toList();
+
+        if (!unitsWithoutOrders.isEmpty()) {
+            log.debug("Game {} | Auto-fill holds for {} units: {}", gameId,
+                    unitsWithoutOrders.size(),
+                    unitsWithoutOrders.stream().map(u -> u.nation() + " " + u.unitType() + " " + u.location().provinceName()).toList());
+        }
 
         for (Unit unit : unitsWithoutOrders) {
             orderPool.add(new Order(
@@ -236,10 +398,10 @@ public final class Game {
         for (Nation nation : nations) {
             counts.put(nation, 0L);
         }
-        for (Unit unit : currentTurn.units()) {
-            if (gameMap.province(unit.location().provinceName())
+        for (var entry : provinceOwnership.entrySet()) {
+            if (gameMap.province(entry.getKey())
                     .map(Province::isSupplyCenter).orElse(false)) {
-                counts.merge(unit.nation(), 1L, Long::sum);
+                counts.merge(entry.getValue(), 1L, Long::sum);
             }
         }
         return counts;
@@ -259,6 +421,7 @@ public final class Game {
         Season nextSeason = currentTurn.season() == Season.SPRING ? Season.AUTUMN : Season.SPRING;
         int nextYear = currentTurn.season() == Season.AUTUMN ? currentTurn.year() + 1 : currentTurn.year();
         currentTurn = currentTurn.next(nextSeason, nextYear);
+        this.dislodgementResult = null;
     }
 
     public String gameId() { return gameId; }
@@ -277,7 +440,7 @@ public final class Game {
 
     public void restore(GameState state, Turn currentTurn, List<Turn> turnHistory,
                          OrderPool orderPool, DislodgementResult dislodgementResult,
-                         Nation winner) {
+                         Nation winner, Map<String, Nation> provinceOwnership) {
         this.state = state;
         this.currentTurn = currentTurn;
         this.turnHistory.clear();
@@ -285,6 +448,14 @@ public final class Game {
         this.orderPool = orderPool;
         this.dislodgementResult = dislodgementResult;
         this.winner = winner;
+        this.provinceOwnership.clear();
+        if (provinceOwnership != null) {
+            this.provinceOwnership.putAll(provinceOwnership);
+        }
+    }
+
+    public Map<String, Nation> provinceOwnership() {
+        return Collections.unmodifiableMap(provinceOwnership);
     }
 
     @Override

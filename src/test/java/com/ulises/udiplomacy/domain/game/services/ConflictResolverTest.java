@@ -17,6 +17,8 @@ class ConflictResolverTest {
     private GameMap map;
     private Nation germany;
     private Nation france;
+    private Nation austria;
+    private Nation russia;
 
     @BeforeEach
     void setUp() {
@@ -24,6 +26,8 @@ class ConflictResolverTest {
         map = TestMapLoader.loadClassic();
         germany = new Nation("GERMANY");
         france = new Nation("FRANCE");
+        austria = new Nation("AUSTRIA");
+        russia = new Nation("RUSSIA");
     }
 
     @Test
@@ -136,6 +140,25 @@ class ConflictResolverTest {
         assertTrue(result.dislodgementResult().dislodgedUnits().isEmpty());
         assertEquals(1, result.dislodgementResult().contestedProvinces().size());
         assertTrue(result.dislodgementResult().contestedProvinces().contains("BUR"));
+    }
+
+    @Test
+    void invalidMoveToContestedProvince_doesNotBlockValidMove() {
+        var valid = new Unit(UnitType.ARMY, austria, new Territory("VIE"));
+        var invalid = new Unit(UnitType.ARMY, russia, new Territory("MOS"));
+
+        Order validMove = new Order(OrderType.MOVE, valid,
+                new Territory("VIE"), new Territory("BOH"), null);
+        Order invalidMove = new Order(OrderType.MOVE, invalid,
+                new Territory("MOS"), new Territory("BOH"), null);
+
+        var orders = List.of(validMove, invalidMove);
+        var units = List.of(valid, invalid);
+
+        ResolutionResult result = resolver.resolve(orders, units, map);
+        assertTrue(result.dislodgementResult().contestedProvinces().isEmpty());
+        assertEquals(OrderResult.FAILURE, result.orderResults().get(invalidMove));
+        assertEquals(OrderResult.SUCCESS, result.orderResults().get(validMove));
     }
 
     @Test

@@ -74,6 +74,96 @@ class OrderParserTest {
     }
 
     @Test
+    void parsesSupportMoveWithArmyPrefix() {
+        Order o = parser.parse("A TYR S A BUR - MUN", map);
+        assertEquals(OrderType.SUPPORT, o.type());
+        assertEquals("TYR", o.source().provinceName());
+        assertTrue(o.auxiliary().isPresent());
+        assertEquals("BUR", o.auxiliary().get().provinceName());
+        assertTrue(o.target().isPresent());
+        assertEquals("MUN", o.target().get().provinceName());
+    }
+
+    @Test
+    void parsesSupportMoveWithFleetPrefix() {
+        Order o = parser.parse("A TYR S F BUR - MUN", map);
+        assertEquals(OrderType.SUPPORT, o.type());
+        assertEquals("TYR", o.source().provinceName());
+        assertTrue(o.auxiliary().isPresent());
+        assertEquals("BUR", o.auxiliary().get().provinceName());
+        assertTrue(o.target().isPresent());
+        assertEquals("MUN", o.target().get().provinceName());
+    }
+
+    @Test
+    void parsesSupportHoldWithArmyPrefix() {
+        Order o = parser.parse("A TYR S A BUR", map);
+        assertEquals(OrderType.SUPPORT, o.type());
+        assertEquals("TYR", o.source().provinceName());
+        assertTrue(o.auxiliary().isPresent());
+        assertEquals("BUR", o.auxiliary().get().provinceName());
+        assertTrue(o.target().isEmpty());
+    }
+
+    @Test
+    void parsesSupportHoldWithFleetPrefix() {
+        Order o = parser.parse("A TYR S F BUR", map);
+        assertEquals(OrderType.SUPPORT, o.type());
+        assertEquals("TYR", o.source().provinceName());
+        assertTrue(o.auxiliary().isPresent());
+        assertEquals("BUR", o.auxiliary().get().provinceName());
+        assertTrue(o.target().isEmpty());
+    }
+
+    @Test
+    void parsesSupportMoveWithFullUnitPrefix() {
+        Order o = parser.parse("A TYR S ARMY BUR - MUN", map);
+        assertEquals(OrderType.SUPPORT, o.type());
+        assertEquals("TYR", o.source().provinceName());
+        assertTrue(o.auxiliary().isPresent());
+        assertEquals("BUR", o.auxiliary().get().provinceName());
+        assertTrue(o.target().isPresent());
+        assertEquals("MUN", o.target().get().provinceName());
+    }
+
+    @Test
+    void parsesConvoyWithArmyPrefix() {
+        Order o = parser.parse("F ENG C A LON HOL", map);
+        assertEquals(OrderType.CONVOY, o.type());
+        assertEquals(UnitType.FLEET, o.unit().unitType());
+        assertEquals("LON", o.auxiliary().get().provinceName());
+        assertEquals("HOL", o.target().get().provinceName());
+    }
+
+    @Test
+    void parsesConvoyWithFleetPrefix() {
+        Order o = parser.parse("F ENG C F LON HOL", map);
+        assertEquals(OrderType.CONVOY, o.type());
+        assertEquals(UnitType.FLEET, o.unit().unitType());
+        assertEquals("LON", o.auxiliary().get().provinceName());
+        assertEquals("HOL", o.target().get().provinceName());
+    }
+
+    @Test
+    void parsesConvoyWithFullUnitPrefix() {
+        Order o = parser.parse("F ENG C ARMY LON HOL", map);
+        assertEquals(OrderType.CONVOY, o.type());
+        assertEquals(UnitType.FLEET, o.unit().unitType());
+        assertEquals("LON", o.auxiliary().get().provinceName());
+        assertEquals("HOL", o.target().get().provinceName());
+    }
+
+    @Test
+    void rejectsSupportWithUnitPrefixOnly() {
+        assertThrows(IllegalArgumentException.class, () -> parser.parse("A TYR S A", map));
+    }
+
+    @Test
+    void rejectsConvoyWithUnitPrefixOnly() {
+        assertThrows(IllegalArgumentException.class, () -> parser.parse("F ENG C A", map));
+    }
+
+    @Test
     void parsesRetreat() {
         Order o = parser.parse("A PAR R GAS", map);
         assertEquals(OrderType.RETREAT, o.type());
@@ -129,28 +219,40 @@ class OrderParserTest {
     }
 
     @Test
-    void rejectsArmyInSea() {
-        assertThrows(IllegalArgumentException.class, () -> parser.parse("A NTH H", map));
+    void parsesArmyHoldInSea() {
+        Order o = parser.parse("A NTH H", map);
+        assertEquals(OrderType.HOLD, o.type());
+        assertEquals(UnitType.ARMY, o.unit().unitType());
+        assertEquals("NTH", o.source().provinceName());
     }
 
     @Test
-    void rejectsFleetInInland() {
-        assertThrows(IllegalArgumentException.class, () -> parser.parse("F PAR H", map));
+    void parsesFleetHoldInInland() {
+        Order o = parser.parse("F PAR H", map);
+        assertEquals(OrderType.HOLD, o.type());
+        assertEquals(UnitType.FLEET, o.unit().unitType());
+        assertEquals("PAR", o.source().provinceName());
     }
 
     @Test
-    void rejectsArmyMoveToSea() {
-        assertThrows(IllegalArgumentException.class, () -> parser.parse("A LON - NTH", map));
+    void parsesArmyMoveToSea() {
+        Order o = parser.parse("A LON - NTH", map);
+        assertEquals(OrderType.MOVE, o.type());
+        assertEquals("NTH", o.target().get().provinceName());
     }
 
     @Test
-    void rejectsFleetMoveToInland() {
-        assertThrows(IllegalArgumentException.class, () -> parser.parse("F LON - PAR", map));
+    void parsesFleetMoveToInland() {
+        Order o = parser.parse("F LON - PAR", map);
+        assertEquals(OrderType.MOVE, o.type());
+        assertEquals("PAR", o.target().get().provinceName());
     }
 
     @Test
-    void rejectsNonAdjacentMove() {
-        assertThrows(IllegalArgumentException.class, () -> parser.parse("A LON - PAR", map));
+    void parsesNonAdjacentMove() {
+        Order o = parser.parse("A LON - PAR", map);
+        assertEquals(OrderType.MOVE, o.type());
+        assertEquals("PAR", o.target().get().provinceName());
     }
 
     @Test
