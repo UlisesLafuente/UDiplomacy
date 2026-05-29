@@ -1,0 +1,76 @@
+Province,Type,Adjacent Land Provinces,Adjacent Sea Provinces
+Adriatic Sea,Sea,Albania,Apulia,Trieste,Venice,Ionian Sea
+Aegean Sea,Sea,Bulgaria,Constantinople,Greece,Smyrna,Eastern Mediterranean,Ionian Sea
+Albania,Coastal,Serbia,Greece,Trieste,Adriatic Sea,Ionian Sea
+Ankara,Coastal,Constantinople,Smyrna,Armenia,Black Sea
+Apulia,Coastal,Rome,Naples,Venice,Adriatic Sea,Ionian Sea
+Armenia,Coastal,Ankara,Smyrna,Syria,Sevastopol,Black Sea
+Baltic Sea,Sea,Denmark,Sweden,Finland,Livonia,Prussia,Berlin,Kiel,Gulf of Bothnia
+Barents Sea,Sea,Norway,St Petersburg
+Belgium,Coastal,Holland,Germany (Ruhr),Burgundy,Picardy,English Channel,North Sea
+Berlin,Coastal,Prussia,Silesia,Munich,Kiel,Baltic Sea
+Black Sea,Sea,Sevastopol,Armenia,Ankara,Constantinople,Bulgaria,Rumania
+Bohemia,Inland,Munich,Tyrolia,Vienna,Silesia,Galicia,
+Brest,Coastal,Picardy,Paris,Gascony,English Channel,Mid-Atlantic Ocean
+Budapest,Inland,Vienna,Galicia,Rumania,Serbia,Trieste,
+Bulgaria,Coastal,Rumania,Serbia,Greece,Constantinople,Black Sea,Aegean Sea
+Burgundy,Inland,Belgium,Germany (Ruhr),Munich,Marseilles,Gascony,Paris,Picardy,
+Clyde,Coastal,Edinburgh,Liverpool,North Atlantic Ocean,Norwegian Sea
+Constantinople,Coastal,Ankara,Smyrna,Bulgaria,Black Sea,Aegean Sea
+Denmark,Coastal,Sweden,Germany (Kiel),Baltic Sea,Skagerrak,North Sea,Heligoland Bight
+Eastern Mediterranean,Sea,Ionian Sea,Aegean Sea,Syria,Smyrna
+Edinburgh,Coastal,Clyde,Liverpool,Yorkshire,North Sea,Norwegian Sea
+English Channel,Sea,London,Belgium,Picardy,Brest,Wales,Irish Sea,Mid-Atlantic Ocean,North Sea
+Finland,Coastal,St Petersburg,Sweden,Norway,Gulf of Bothnia
+Galicia,Inland,Warsaw,Silesia,Ukraine,Rumania,Budapest,Vienna,Bohemia,
+Gascony,Coastal,Brest,Paris,Burgundy,Marseilles,Spain (North Coast),Mid-Atlantic Ocean
+Greece,Coastal,Albania,Serbia,Bulgaria,Ionian Sea,Aegean Sea
+Gulf of Bothnia,Sea,Finland,Sweden,Livonia,St Petersburg,Baltic Sea
+Gulf of Lyon,Sea,Marseilles,Piedmont (West Coast),Spain (East Coast),Western Mediterranean,Tyrrhenian Sea
+Heligoland Bight,Sea,Denmark,Germany (Kiel),Holland,North Sea
+Holland,Coastal,Belgium,Germany (Ruhr),Germany (Kiel),North Sea,Heligoland Bight
+Ionian Sea,Sea,Albania,Greece,Tunis,Naples,Apulia,Tyrrhenian Sea,Eastern Mediterranean,Aegean Sea
+Irish Sea,Sea,Liverpool,Wales,North Atlantic Ocean,English Channel,Mid-Atlantic Ocean
+Kiel,Coastal,Germany (Berlin),Germany (Munich),Germany (Ruhr),Holland,Denmark,Baltic Sea,Heligoland Bight
+Liverpool,Coastal,Clyde,Edinburgh,Yorkshire,Wales,North Atlantic Ocean,Irish Sea
+Livonia,Coastal,St Petersburg,Moscow,Warsaw,Prussia,Baltic Sea,Gulf of Bothnia
+London,Coastal,Yorkshire,Wales,North Sea,English Channel
+Marseilles,Coastal,Paris (Burgundy),Gascony,Spain (Piedmont),Gulf of Lyon
+Mid-Atlantic Ocean,Sea,Portugal,Spain (North Coast),Gascony,Brest,English Channel,Irish Sea,North Atlantic Ocean,Western Mediterranean,North Africa
+Moscow,Inland,St Petersburg,Sevastopol,Ukraine,Warsaw,Livonia,
+Munich,Inland,Berlin,Kiel,Germany (Ruhr),Burgundy,Marseilles (Tyrolia),Bohemia,Silesia,
+Naples,Coastal,Rome,Apulia,Ionian Sea,Tyrrhenian Sea
+North Africa,Coastal,Tunis,Mid-Atlantic Ocean,Western Mediterranean
+North Atlantic Ocean,Sea,Clyde,Liverpool,North Sea,Norwegian Sea,Mid-Atlantic Ocean,Irish Sea
+North Sea,Sea,Edinburgh,Yorkshire,London,Belgium,Holland,Denmark,Norway,English Channel,Norwegian Sea,Skagerrak,Heligoland Bight
+Norway,Coastal,St Petersburg,Finland,Sweden,North Sea,Norwegian Sea,Skagerrak,Barents Sea
+Norwegian Sea,Sea,Clyde,Edinburgh,Norway,North Atlantic Ocean,North Sea,Barents Sea
+Paris,Inland,Picardy,Burgundy,Gascony,Brest,
+Picardy,Coastal,Belgium,Burgundy,Paris,Brest,English Channel
+Piedmont,Coastal,Marseilles,Switzerland (Tyrolia),Venice,Tuscany,Gulf of Lyon
+Portugal,Coastal,Spain (North Coast),Mid-Atlantic Ocean
+Prussia,Coastal,Germany (Berlin),Silesia,Warsaw,Livonia,Baltic Sea
+Rome,Coastal,Naples,Venice (Tuscany),Apulia,Tyrrhenian Sea
+Ruhr,Inland,Belgium,Holland,Kiel,Munich,Burgundy,
+Rumania,Coastal,Ukraine,Sevastopol,Bulgaria,Serbia,Budapest,Galicia,Black Sea
+Serbia,Inland,Trieste,Budapest,Rumania,Bulgaria,Greece,Albania,
+Sevastopol,Coastal,Armenia,Rumania,Ukraine,Moscow,Black Sea
+Silesia,Inland,Prussia,Warsaw,Galicia,Bohemia,Munich,Berlin,
+Skagerrak,Sea,Norway,Sweden,Denmark,North Sea
+Smyrna,Coastal,Ankara,Armenia,Syria,Constantinople,Aegean Sea,Eastern Mediterranean
+Spain,Coastal,Portugal,Gascony,Marseilles (Piedmont),Mid-Atlantic Ocean,Gulf of Lyon,Western Mediterranean
+St Petersburg,Coastal,Moscow,Livonia,Finland,Norway,Barents Sea,Gulf of Bothnia
+Sweden,Coastal,Norway,Finland,Denmark,Baltic Sea,Skagerrak,Gulf of Bothnia
+Syria,Coastal,Armenia,Smyrna,Eastern Mediterranean
+Trieste,Coastal,Vienna,Budapest,Serbia,Albania,Venice,Adriatic Sea
+Tunis,Coastal,North Africa,Western Mediterranean,Tyrrhenian Sea,Ionian Sea
+Tuscany,Coastal,Rome,Venice,Piedmont,Gulf of Lyon,Tyrrhenian Sea
+Tyrolia,Inland,Trieste,Venice,Vienna,Bohemia,Munich,Piedmont,
+Tyrrhenian Sea,Sea,Naples,Rome,Tuscany,Tunis,Western Mediterranean,Ionian Sea,Gulf of Lyon
+Ukraine,Inland,Warsaw,Galicia,Rumania,Sevastopol,Moscow,
+Venice,Coastal,Apulia,Rome (Tuscany),Piedmont,Tyrolia,Trieste,Adriatic Sea
+Vienna,Inland,Trieste,Tyrolia,Bohemia,Galicia,Budapest,
+Wales,Coastal,Liverpool,Yorkshire,London,Irish Sea,English Channel
+Warsaw,Inland,Prussia,Silesia,Galicia,Ukraine,Moscow,Livonia,
+Western Mediterranean,Sea,Spain (East Coast),Marseilles (Tunis),North Africa,Mid-Atlantic Ocean,Gulf of Lyon,Tyrrhenian Sea
+Yorkshire,Coastal,Edinburgh,Liverpool,London,Wales,North Sea
