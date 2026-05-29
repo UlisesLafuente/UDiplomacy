@@ -24,8 +24,8 @@
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
      inkscape:zoom="20"
-     inkscape:cx="10.95"
-     inkscape:cy="25.025"
+     inkscape:cx="24"
+     inkscape:cy="28.325"
      inkscape:window-width="2560"
      inkscape:window-height="1412"
      inkscape:window-x="1920"
@@ -39,7 +39,7 @@
      fill="currentColor"
      opacity="0.92"
      id="circle20272"
-     style="stroke:#000000;stroke-width:2;stroke-opacity:1;stroke-dasharray:none" />
+     style="stroke:#000000;stroke-width:2;stroke-opacity:1;stroke-dasharray:none;opacity:0.7" />
   <path
      fill="#ffffff"
      stroke="#333333"
