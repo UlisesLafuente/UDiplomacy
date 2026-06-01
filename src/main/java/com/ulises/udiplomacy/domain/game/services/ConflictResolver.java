@@ -35,10 +35,32 @@ public final class ConflictResolver {
         Map<Unit, List<Territory>> dislodged = findDislodgedUnits(orders, successfulMoves,
                 unitByProvince, gameMap, contestedProvinces, movedFrom);
 
+        // Second pass: check convoy-dependent moves against dislodged fleets
+        Set<String> dislodgedProvinces = dislodged.keySet().stream()
+                .map(u -> u.location().provinceName())
+                .collect(Collectors.toSet());
+        boolean convoyRechecked = false;
+        for (Order order : orders) {
+            if (order.type() != OrderType.MOVE) continue;
+            if (!successfulMoves.contains(order)) continue;
+            if (!usesConvoy(order, gameMap)) continue;
+            if (!hasConvoyPath(order, orders, gameMap, dislodgedProvinces)) {
+                successfulMoves.remove(order);
+                convoyRechecked = true;
+            }
+        }
+        if (convoyRechecked) {
+            movedFrom = successfulMoves.stream()
+                    .map(o -> o.source().provinceName())
+                    .collect(Collectors.toSet());
+            dislodged = findDislodgedUnits(orders, successfulMoves,
+                    unitByProvince, gameMap, contestedProvinces, movedFrom);
+        }
+
         DislodgementResult dislodgementResult = new DislodgementResult(dislodged, contestedProvinces);
 
         Map<Order, OrderResult> orderResults = computeOrderResults(orders, successfulMoves,
-                attackedProvinces);
+                attackedProvinces, dislodgedProvinces);
 
         // Log summary
         if (!contestedProvinces.isEmpty()) {
@@ -67,7 +89,8 @@ public final class ConflictResolver {
 
     private Map<Order, OrderResult> computeOrderResults(List<Order> orders,
                                                           List<Order> successfulMoves,
-                                                          Set<String> attackedProvinces) {
+                                                          Set<String> attackedProvinces,
+                                                          Set<String> dislodgedProvinces) {
         Map<Order, OrderResult> results = new HashMap<>();
         for (Order order : orders) {
             results.put(order, switch (order.type()) {
@@ -76,7 +99,7 @@ public final class ConflictResolver {
                         ? OrderResult.SUCCESS : OrderResult.FAILURE;
                 case SUPPORT -> attackedProvinces.contains(order.source().provinceName())
                         ? OrderResult.FAILURE : OrderResult.SUCCESS;
-                case CONVOY -> attackedProvinces.contains(order.source().provinceName())
+                case CONVOY -> dislodgedProvinces.contains(order.source().provinceName())
                         ? OrderResult.FAILURE : OrderResult.SUCCESS;
                 case RETREAT, BUILD, DISBAND -> OrderResult.SUCCESS;
             });
@@ -351,7 +374,25 @@ public final class ConflictResolver {
                 .findFirst();
     }
 
+    private boolean usesConvoy(Order order, GameMap gameMap) {
+        if (order.type() != OrderType.MOVE) return false;
+        if (order.unit().unitType() != com.ulises.udiplomacy.domain.game.enums.UnitType.ARMY) return false;
+        String source = order.source().provinceName();
+        String target = order.target().map(Territory::provinceName).orElse(null);
+        if (target == null) return false;
+        Province srcProv = gameMap.province(source).orElse(null);
+        Province tgtProv = gameMap.province(target).orElse(null);
+        if (srcProv == null || tgtProv == null) return false;
+        return !srcProv.adjacencies().containsKey(target)
+                && !tgtProv.adjacencies().containsKey(source);
+    }
+
     private boolean hasConvoyPath(Order armyMove, List<Order> orders, GameMap gameMap) {
+        return hasConvoyPath(armyMove, orders, gameMap, Set.of());
+    }
+
+    private boolean hasConvoyPath(Order armyMove, List<Order> orders, GameMap gameMap,
+                                   Set<String> excludedFleetProvinces) {
         String source = armyMove.source().provinceName();
         String target = armyMove.target().map(Territory::provinceName).orElse(null);
         if (target == null) return false;
@@ -366,6 +407,7 @@ public final class ConflictResolver {
                     Province p = gameMap.province(prov).orElse(null);
                     return p != null && p.isSea();
                 })
+                .filter(prov -> !excludedFleetProvinces.contains(prov))
                 .collect(Collectors.toSet());
 
         if (convoySeaProvinces.isEmpty()) return false;

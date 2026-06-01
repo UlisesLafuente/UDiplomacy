@@ -331,7 +331,27 @@ public final class Game {
 
         switch (currentTurn.phase()) {
             case RETREAT -> {
-                currentTurn = currentTurn.withPhase(Phase.ORDERS);
+                // Record any unresolved dislodged units as DISBAND
+                List<Order> resolvedOrders = new ArrayList<>();
+                Map<Order, OrderResult> retreatResults = new HashMap<>();
+                if (dislodgementResult != null) {
+                    for (var entry : dislodgementResult.dislodgedUnits().entrySet()) {
+                        Unit u = entry.getKey();
+                        Order disbandOrder = new Order(OrderType.DISBAND, u, u.location(), null, null);
+                        resolvedOrders.add(disbandOrder);
+                        retreatResults.put(disbandOrder, OrderResult.SUCCESS);
+                    }
+                }
+                if (!resolvedOrders.isEmpty()) {
+                    currentTurn = currentTurn.withOrdersResolved(resolvedOrders, retreatResults);
+                }
+                this.dislodgementResult = null;
+                turnHistory.add(currentTurn);
+                if (currentTurn.season() == Season.AUTUMN) {
+                    currentTurn = currentTurn.withPhase(Phase.BUILD);
+                } else {
+                    advanceToNextTurn();
+                }
             }
             case BUILD -> {
                 events.add(new TurnEnded(gameId, currentTurn.year(), currentTurn.season().name()));
