@@ -361,8 +361,25 @@ public final class Game {
     }
 
     public void autoFillHolds() {
-        var existingOrders = orderPool.orders();
-        var orderedUnits = existingOrders.stream()
+        // Build map of actual units by province
+        Map<String, Unit> unitsByProvince = new HashMap<>();
+        for (Unit u : currentTurn.units()) {
+            unitsByProvince.put(u.location().provinceName(), u);
+        }
+
+        // Match stub orders to actual units; reject if unit type mismatches
+        List<Order> cleanedOrders = new ArrayList<>();
+        for (Order order : orderPool.orders()) {
+            Unit actualUnit = unitsByProvince.get(order.source().provinceName());
+            if (actualUnit != null && actualUnit.unitType() == order.unit().unitType()) {
+                cleanedOrders.add(new Order(order.type(), actualUnit, order.source(),
+                        order.target().orElse(null), order.auxiliary().orElse(null)));
+            }
+        }
+        orderPool = new OrderPool(cleanedOrders);
+
+        // Auto-fill holds for units still without orders
+        var orderedUnits = orderPool.orders().stream()
                 .map(Order::unit)
                 .toList();
 

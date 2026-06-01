@@ -175,8 +175,17 @@ public final class ConflictResolver {
                 Coast srcCoast = srcProv.adjacencies().get(target);
                 Coast tgtCoast = tgtProv.adjacencies().get(source);
                 if (srcCoast == null && tgtCoast == null) {
-                    invalidSources.add(source);
-                    continue;
+                    if (srcProv.isSea() || tgtProv.isSea()) {
+                        // Sea <-> Coast or Sea <-> Sea: always a valid sea route
+                    } else if (!srcProv.coasts().isEmpty() || !tgtProv.coasts().isEmpty()) {
+                        // At least one province has named coasts, null means land-only
+                        invalidSources.add(source);
+                        continue;
+                    } else if (!shareSeaNeighbor(srcProv, tgtProv, gameMap)) {
+                        // Single-coast provinces with no shared sea = land-only route
+                        invalidSources.add(source);
+                        continue;
+                    }
                 }
             }
             // Army to sea
@@ -245,6 +254,8 @@ public final class ConflictResolver {
                         || defenseOrder.type() == OrderType.MOVE)) {
                     if (defenseOrder.type() == OrderType.HOLD) {
                         defenseStrength = 1 + effectiveSupport.getOrDefault(defenseOrder, 0);
+                    } else {
+                        defenseStrength = 0;
                     }
                 }
 
@@ -333,5 +344,17 @@ public final class ConflictResolver {
                 .map(Order::unit)
                 .filter(u -> u.location().provinceName().equals(provinceName))
                 .findFirst();
+    }
+
+    private boolean shareSeaNeighbor(Province a, Province b, GameMap gameMap) {
+        for (String neighborName : a.adjacencies().keySet()) {
+            if (b.adjacencies().containsKey(neighborName)) {
+                Province neighbor = gameMap.province(neighborName).orElse(null);
+                if (neighbor != null && neighbor.isSea()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

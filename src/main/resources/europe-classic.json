@@ -38,7 +38,7 @@
       "supplyCenter": false,
       "coasts": null,
       "adjacencies": {
-        "TRI": null,
+        "TRI": "north",
         "SER": null,
         "GRE": null,
         "ION": null,
@@ -112,7 +112,7 @@
       "adjacencies": {
         "NWG": null,
         "NOR": null,
-        "STP": "north"
+        "STP": null
       }
     },
     {

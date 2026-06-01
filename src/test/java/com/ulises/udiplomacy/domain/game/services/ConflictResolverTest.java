@@ -212,4 +212,80 @@ class ConflictResolverTest {
         assertNotNull(options);
         assertFalse(options.contains(new Territory("RUH")));
     }
+
+    @Test
+    void fleetMovesFromSeaToSingleCoastCoastal() {
+        var fleet = new Unit(UnitType.FLEET, france, new Territory("NTH"));
+        Order move = new Order(OrderType.MOVE, fleet,
+                new Territory("NTH"), new Territory("LON"), null);
+        var result = resolver.resolve(List.of(move), List.of(fleet), map);
+        assertEquals(OrderResult.SUCCESS, result.orderResults().get(move));
+    }
+
+    @Test
+    void fleetMovesFromSingleCoastCoastalToSea() {
+        var fleet = new Unit(UnitType.FLEET, france, new Territory("LON"));
+        Order move = new Order(OrderType.MOVE, fleet,
+                new Territory("LON"), new Territory("NTH"), null);
+        var result = resolver.resolve(List.of(move), List.of(fleet), map);
+        assertEquals(OrderResult.SUCCESS, result.orderResults().get(move));
+    }
+
+    @Test
+    void fleetMovesBetweenSeaProvinces() {
+        var fleet = new Unit(UnitType.FLEET, france, new Territory("NTH"));
+        Order move = new Order(OrderType.MOVE, fleet,
+                new Territory("NTH"), new Territory("ENG"), null);
+        var result = resolver.resolve(List.of(move), List.of(fleet), map);
+        assertEquals(OrderResult.SUCCESS, result.orderResults().get(move));
+    }
+
+    @Test
+    void fleetMovesBetweenSingleCoastCoastalProvincesWithSharedSea() {
+        var fleet = new Unit(UnitType.FLEET, france, new Territory("LON"));
+        Order move = new Order(OrderType.MOVE, fleet,
+                new Territory("LON"), new Territory("WAL"), null);
+        var result = resolver.resolve(List.of(move), List.of(fleet), map);
+        assertEquals(OrderResult.SUCCESS, result.orderResults().get(move));
+    }
+
+    @Test
+    void fleetCannotMoveBetweenSingleCoastCoastalProvincesWithoutSharedSea() {
+        var fleet = new Unit(UnitType.FLEET, austria, new Territory("ROM"));
+        Order move = new Order(OrderType.MOVE, fleet,
+                new Territory("ROM"), new Territory("VEN"), null);
+        var result = resolver.resolve(List.of(move), List.of(fleet), map);
+        assertEquals(OrderResult.FAILURE, result.orderResults().get(move));
+    }
+
+    @Test
+    void fleetMovesFromNapToRom() {
+        var fleet = new Unit(UnitType.FLEET, austria, new Territory("NAP"));
+        Order move = new Order(OrderType.MOVE, fleet,
+                new Territory("NAP"), new Territory("ROM"), null);
+        var result = resolver.resolve(List.of(move), List.of(fleet), map);
+        assertEquals(OrderResult.SUCCESS, result.orderResults().get(move));
+    }
+
+    @Test
+    void armyMovesBetweenSingleCoastCoastalProvincesWithSharedSea() {
+        var army = new Unit(UnitType.ARMY, france, new Territory("LON"));
+        Order move = new Order(OrderType.MOVE, army,
+                new Territory("LON"), new Territory("WAL"), null);
+        var result = resolver.resolve(List.of(move), List.of(army), map);
+        assertEquals(OrderResult.SUCCESS, result.orderResults().get(move));
+    }
+
+    @Test
+    void fleetEntersProvinceWhoseUnitIsMovingAway() {
+        var romeFleet = new Unit(UnitType.FLEET, austria, new Territory("ROM"));
+        var tusFleet = new Unit(UnitType.FLEET, austria, new Territory("TUS"));
+        Order romMove = new Order(OrderType.MOVE, romeFleet,
+                new Territory("ROM"), new Territory("NAP"), null);
+        Order tusMove = new Order(OrderType.MOVE, tusFleet,
+                new Territory("TUS"), new Territory("ROM"), null);
+        var result = resolver.resolve(List.of(romMove, tusMove), List.of(romeFleet, tusFleet), map);
+        assertEquals(OrderResult.SUCCESS, result.orderResults().get(tusMove),
+                "TUS fleet should enter ROM because ROM's unit is moving away");
+    }
 }

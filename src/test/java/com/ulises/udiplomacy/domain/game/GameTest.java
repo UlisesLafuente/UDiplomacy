@@ -460,6 +460,50 @@ class GameTest {
         assertEquals(1902, game.currentTurn().year());
     }
 
+    // --- unit type validation ---
+
+    @Test
+    void autoFillHolds_rejectsOrderWithWrongUnitType() {
+        var fleet = new Unit(UnitType.FLEET, england, new Territory("ROM"));
+        game.start(List.of(fleet));
+        // Submit order with wrong unit type (ARMY, but actual unit is FLEET)
+        var wrongOrder = new Order(OrderType.MOVE,
+                new Unit(UnitType.ARMY, england, new Territory("ROM")),
+                new Territory("ROM"), new Territory("APU"), null);
+        game.submitOrder(wrongOrder);
+
+        var realResolver = new ConflictResolver();
+        game.executeOrders(realResolver);
+
+        // The FLEET in ROM should NOT have moved (it should have been auto-filled HOLD)
+        assertTrue(game.currentTurn().units().stream()
+                .anyMatch(u -> u.location().provinceName().equals("ROM")
+                        && u.unitType() == UnitType.FLEET),
+                "FLEET in ROM should still be there after wrong unit type order");
+        assertTrue(game.currentTurn().units().stream()
+                .noneMatch(u -> u.location().provinceName().equals("APU")),
+                "No unit should have moved to APU");
+    }
+
+    @Test
+    void autoFillHolds_acceptsOrderWithCorrectUnitType() {
+        var fleet = new Unit(UnitType.FLEET, england, new Territory("ROM"));
+        game.start(List.of(fleet));
+        // Submit order with correct unit type (FLEET) to NAP (both share TYS sea)
+        var correctOrder = new Order(OrderType.MOVE, fleet,
+                new Territory("ROM"), new Territory("NAP"), null);
+        game.submitOrder(correctOrder);
+
+        var realResolver = new ConflictResolver();
+        game.executeOrders(realResolver);
+
+        // The FLEET in ROM should have moved to NAP
+        assertTrue(game.currentTurn().units().stream()
+                .anyMatch(u -> u.location().provinceName().equals("NAP")
+                        && u.unitType() == UnitType.FLEET),
+                "FLEET should have moved to NAP");
+    }
+
     @Test
     void provinceOwnership_retainsSourceAfterSuccessfulMove() {
         game.start(List.of(englishArmy));
