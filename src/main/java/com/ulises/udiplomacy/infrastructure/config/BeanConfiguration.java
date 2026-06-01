@@ -138,8 +138,9 @@ public class BeanConfiguration {
     }
 
     @Bean
-    public DeleteGameUseCase deleteGameUseCase(GameRepository gameRepository) {
-        return new DeleteGameService(gameRepository);
+    public DeleteGameUseCase deleteGameUseCase(GameRepository gameRepository,
+                                                 GameProjectionRepository projectionRepository) {
+        return new DeleteGameService(gameRepository, projectionRepository);
     }
 
     @Bean

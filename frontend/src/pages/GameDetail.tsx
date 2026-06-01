@@ -79,7 +79,7 @@ export default function GameDetail() {
 
     for (const [province, nation] of Object.entries(g.provinceOwnership ?? {})) {
       const path = svg.getElementById(`provincia-${province}`)
-      if (path) {
+      if (path && !path.classList.contains('provincia-sea')) {
         (path as HTMLElement).style.fill = getNationColor(nation)
       }
     }
@@ -396,7 +396,7 @@ export default function GameDetail() {
                     className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-600 hover:bg-gray-300"
                     onMouseEnter={(e) => {
                       const rect = (e.target as HTMLElement).getBoundingClientRect()
-                      setSyntaxTooltip({ x: rect.left, y: rect.bottom + 4 })
+                      setSyntaxTooltip({ x: rect.right, y: rect.bottom + 4 })
                     }}
                     onMouseLeave={() => setSyntaxTooltip(null)}
                   >
@@ -405,7 +405,7 @@ export default function GameDetail() {
                   {syntaxTooltip && (
                     <div
                       className="pointer-events-none fixed z-50 rounded border bg-white px-3 py-2 text-xs text-gray-700 shadow-lg"
-                      style={{ left: syntaxTooltip.x, top: syntaxTooltip.y }}
+                      style={{ right: window.innerWidth - syntaxTooltip.x, top: syntaxTooltip.y }}
                     >
                       <p className="mb-1 font-semibold">Order syntax:</p>
                       {game.phase === 'ORDERS' && <>

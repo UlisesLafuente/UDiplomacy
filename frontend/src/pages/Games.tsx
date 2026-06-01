@@ -27,6 +27,17 @@ export default function Games() {
     }
   }
 
+  const deleteGame = async (gameId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!confirm('¿Eliminar esta partida permanentemente?')) return
+    try {
+      await games.delete(gameId)
+      setGameList((prev) => prev.filter((g) => g.gameId !== gameId))
+    } catch {
+      alert('Error al eliminar la partida')
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -77,13 +88,22 @@ export default function Games() {
                 {g.status} · {new Date(g.createdAt).toLocaleDateString()}
               </p>
             </div>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
-                g.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              {g.status === 'IN_PROGRESS' ? 'En curso' : 'Finalizada'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  g.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {g.status === 'IN_PROGRESS' ? 'En curso' : 'Finalizada'}
+              </span>
+              <button
+                onClick={(e) => deleteGame(g.gameId, e)}
+                className="rounded-full p-1 text-gray-400 hover:bg-red-100 hover:text-red-600"
+                title="Eliminar partida"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         ))}
         {gameList.length === 0 && (

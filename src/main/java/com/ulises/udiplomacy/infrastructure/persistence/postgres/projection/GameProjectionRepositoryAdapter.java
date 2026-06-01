@@ -64,4 +64,9 @@ public class GameProjectionRepositoryAdapter implements GameProjectionRepository
                         GameState.valueOf(e.getStatus()),
                         e.getCreatedAt(), e.getUpdatedAt()));
     }
+
+    @Override
+    public void deleteByGameId(String gameId) {
+        springRepository.deleteById(gameId);
+    }
 }

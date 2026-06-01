@@ -13,4 +13,5 @@ public interface GameProjectionRepository {
     void saveFinalScores(String gameId, Nation winner, Map<Nation, Integer> scores);
     List<GameReference> findByUserId(String userId);
     Optional<GameReference> findByGameId(String gameId);
+    void deleteByGameId(String gameId);
 }

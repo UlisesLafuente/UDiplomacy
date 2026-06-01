@@ -164,11 +164,16 @@ public final class ConflictResolver {
                 invalidSources.add(source);
                 continue;
             }
-            // Not adjacent
+            // Not adjacent — check for convoy path for armies
             if (!srcProv.adjacencies().containsKey(target)
                     && !tgtProv.adjacencies().containsKey(source)) {
-                invalidSources.add(source);
-                continue;
+                if (order.unit().unitType() == com.ulises.udiplomacy.domain.game.enums.UnitType.ARMY
+                        && hasConvoyPath(order, orders, gameMap)) {
+                    // Valid convoy path exists
+                } else {
+                    invalidSources.add(source);
+                    continue;
+                }
             }
             // Fleet must move via coastal adjacency (non-null coast)
             if (order.unit().unitType() == com.ulises.udiplomacy.domain.game.enums.UnitType.FLEET) {
@@ -344,6 +349,78 @@ public final class ConflictResolver {
                 .map(Order::unit)
                 .filter(u -> u.location().provinceName().equals(provinceName))
                 .findFirst();
+    }
+
+    private boolean hasConvoyPath(Order armyMove, List<Order> orders, GameMap gameMap) {
+        String source = armyMove.source().provinceName();
+        String target = armyMove.target().map(Territory::provinceName).orElse(null);
+        if (target == null) return false;
+
+        // Find matching CONVOY orders: fleet in SEA, with matching auxiliary=source and target=target
+        Set<String> convoySeaProvinces = orders.stream()
+                .filter(o -> o.type() == OrderType.CONVOY)
+                .filter(o -> o.auxiliary().map(Territory::provinceName).orElse("").equals(source))
+                .filter(o -> o.target().map(Territory::provinceName).orElse("").equals(target))
+                .map(o -> o.source().provinceName())
+                .filter(prov -> {
+                    Province p = gameMap.province(prov).orElse(null);
+                    return p != null && p.isSea();
+                })
+                .collect(Collectors.toSet());
+
+        if (convoySeaProvinces.isEmpty()) return false;
+
+        Province srcProv = gameMap.province(source).orElse(null);
+        Province tgtProv = gameMap.province(target).orElse(null);
+        if (srcProv == null || tgtProv == null) return false;
+
+        // Sea provinces adjacent to source
+        Set<String> srcSeaAdj = srcProv.adjacencies().keySet().stream()
+                .filter(n -> {
+                    Province p = gameMap.province(n).orElse(null);
+                    return p != null && p.isSea();
+                })
+                .collect(Collectors.toSet());
+
+        // Sea provinces adjacent to target
+        Set<String> tgtSeaAdj = tgtProv.adjacencies().keySet().stream()
+                .filter(n -> {
+                    Province p = gameMap.province(n).orElse(null);
+                    return p != null && p.isSea();
+                })
+                .collect(Collectors.toSet());
+
+        if (srcSeaAdj.isEmpty() || tgtSeaAdj.isEmpty()) return false;
+
+        // BFS through sea provinces with matching CONVOY orders
+        Set<String> visited = new HashSet<>();
+        Queue<String> queue = new ArrayDeque<>();
+        for (String sea : srcSeaAdj) {
+            if (convoySeaProvinces.contains(sea)) {
+                queue.add(sea);
+            }
+        }
+
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+            if (!visited.add(current)) continue;
+
+            if (tgtSeaAdj.contains(current)) return true;
+
+            Province currentProv = gameMap.province(current).orElse(null);
+            if (currentProv == null) continue;
+
+            for (String neighbor : currentProv.adjacencies().keySet()) {
+                if (visited.contains(neighbor)) continue;
+                Province neighborProv = gameMap.province(neighbor).orElse(null);
+                if (neighborProv != null && neighborProv.isSea()
+                        && convoySeaProvinces.contains(neighbor)) {
+                    queue.add(neighbor);
+                }
+            }
+        }
+
+        return false;
     }
 
     private boolean shareSeaNeighbor(Province a, Province b, GameMap gameMap) {
