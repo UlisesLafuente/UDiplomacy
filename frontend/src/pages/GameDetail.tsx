@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { games } from '@/api'
 import { useAuth } from '@/hooks/useAuth'
@@ -27,6 +27,22 @@ export default function GameDetail() {
   // Retreat panel state
   const [retreatOptions, setRetreatOptions] = useState<RetreatOptionsResponse | null>(null)
   const [retreatSelections, setRetreatSelections] = useState<Record<string, string>>({})
+
+  // Tooltip state
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null)
+  const [syntaxTooltip, setSyntaxTooltip] = useState<{ x: number; y: number } | null>(null)
+
+  const handleSvgMouseMove = (e: React.MouseEvent) => {
+    const target = e.target as Element
+    const unitGroup = target.closest('[data-unit-label]') as HTMLElement | null
+    if (unitGroup) {
+      setTooltip({ x: e.clientX + 12, y: e.clientY - 10, text: unitGroup.getAttribute('data-unit-label')! })
+    } else {
+      setTooltip(null)
+    }
+  }
+
+  const handleSvgMouseLeave = () => setTooltip(null)
 
   // Build panel state: map of nation -> array of build/disband orders
   interface BuildEntry {
@@ -261,12 +277,6 @@ export default function GameDetail() {
     await fetchGame()
   }
 
-  const deleteGame = async () => {
-    if (!id || !confirm('Delete this game permanently?')) return
-    await games.delete(id)
-    navigate('/games')
-  }
-
   const loadHistory = async () => {
     if (!id) return
     const h = await games.history(id)
@@ -285,6 +295,20 @@ export default function GameDetail() {
       (p) => !game!.units.some((u) => u.province === p)
     )
   }
+
+  const scores = useMemo(() => {
+    if (!game) return []
+    const unitCount: Record<string, number> = {}
+    for (const nation of game.nations) unitCount[nation] = 0
+    for (const u of game.units) {
+      if (unitCount[u.nation] !== undefined) unitCount[u.nation]++
+    }
+    return game.nations.map((n) => ({
+      nation: n,
+      score: game.scores[n] ?? 0,
+      units: unitCount[n],
+    }))
+  }, [game])
 
   return (
     <div className="flex h-screen flex-col">
@@ -314,15 +338,37 @@ export default function GameDetail() {
       </>}
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Map */}
-        <div className="flex-1 overflow-auto bg-gray-50">
-          <svg
-            ref={svgRef}
-            className="h-full w-full block"
-            viewBox="0 0 3044 2401"
-            preserveAspectRatio="xMidYMid meet"
-            style={{ minHeight: '600px', background: '#e8f4e8' }}
-          />
+        {/* Map + score */}
+        <div className="flex flex-1 flex-col bg-gray-50">
+          <div className="flex-1 overflow-auto" onMouseMove={handleSvgMouseMove} onMouseLeave={handleSvgMouseLeave}>
+            <svg
+              ref={svgRef}
+              className="h-full w-full block"
+              viewBox="0 0 3044 2401"
+              preserveAspectRatio="xMidYMid meet"
+              style={{ minHeight: '600px', background: '#e8f4e8' }}
+            />
+            {tooltip && (
+              <div
+                className="pointer-events-none fixed z-50 rounded bg-gray-800 px-2 py-1 text-xs font-mono text-white shadow-lg"
+                style={{ left: tooltip.x, top: tooltip.y }}
+              >
+                {tooltip.text}
+              </div>
+            )}
+          </div>
+          {game && (
+            <div className="flex items-center gap-6 border-t bg-white px-6 py-2 text-sm">
+              {scores.map((s) => (
+                <div key={s.nation} className="flex items-center gap-1.5">
+                  <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: getNationColor(s.nation) }} />
+                  <span className="font-medium">{s.nation}</span>
+                  <span className="text-gray-500">{s.score}</span>
+                  <span className="text-xs text-gray-400">({s.units})</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -342,9 +388,44 @@ export default function GameDetail() {
                 <button onClick={advance} className="rounded bg-blue-500 px-3 py-1.5 text-sm text-white hover:bg-blue-600">
                   Advance
                 </button>
-                <button onClick={deleteGame} className="rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700">
-                  Delete
+                <button onClick={() => navigate('/games')} className="rounded bg-gray-500 px-3 py-1.5 text-sm text-white hover:bg-gray-600">
+                  Go back
                 </button>
+                <span className="relative inline-flex items-center">
+                  <button
+                    className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-600 hover:bg-gray-300"
+                    onMouseEnter={(e) => {
+                      const rect = (e.target as HTMLElement).getBoundingClientRect()
+                      setSyntaxTooltip({ x: rect.left, y: rect.bottom + 4 })
+                    }}
+                    onMouseLeave={() => setSyntaxTooltip(null)}
+                  >
+                    ?
+                  </button>
+                  {syntaxTooltip && (
+                    <div
+                      className="pointer-events-none fixed z-50 rounded border bg-white px-3 py-2 text-xs text-gray-700 shadow-lg"
+                      style={{ left: syntaxTooltip.x, top: syntaxTooltip.y }}
+                    >
+                      <p className="mb-1 font-semibold">Order syntax:</p>
+                      {game.phase === 'ORDERS' && <>
+                        <p><span className="font-mono">A LON H</span> — hold</p>
+                        <p><span className="font-mono">A PAR - BUR</span> — move</p>
+                        <p><span className="font-mono">A PAR S A MAR - BUR</span> — support move</p>
+                        <p><span className="font-mono">A PAR S A MAR</span> — support hold</p>
+                        <p><span className="font-mono">F MID C A LON - BRE</span> — convoy</p>
+                      </>}
+                      {game.phase === 'RETREAT' && <>
+                        <p><span className="font-mono">A LON R PAR</span> — retreat</p>
+                        <p><span className="font-mono">A LON D</span> — disband</p>
+                      </>}
+                      {game.phase === 'BUILD' && <>
+                        <p><span className="font-mono">F LON B LON</span> — build</p>
+                        <p><span className="font-mono">A PAR D</span> — disband</p>
+                      </>}
+                    </div>
+                  )}
+                </span>
               </div>
 
               {/* Order input — only show in ORDERS phase */}

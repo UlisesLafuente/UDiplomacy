@@ -56,6 +56,7 @@ export interface Game {
   dislodgedUnits: Unit[]
   buildCapacities: BuildCapacity[]
   provinceOwnership: Record<string, string>
+  scores: Record<string, number>
 }
 
 export interface HistoryEntry {

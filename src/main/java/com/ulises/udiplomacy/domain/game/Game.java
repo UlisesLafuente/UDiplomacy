@@ -131,9 +131,11 @@ public final class Game {
         events.add(new PhaseEnded(gameId, currentTurn.phase().name(), resolution.dislodgementResult()));
 
         if (resolution.dislodgementResult().hasDislodgedUnits()) {
+            turnHistory.add(currentTurn);
             currentTurn = currentTurn.withPhase(Phase.RETREAT);
             log.info("Game {} | Phase -> RETREAT ({})", gameId, currentTurn.season() + " " + currentTurn.year());
         } else if (currentTurn.season() == Season.AUTUMN) {
+            turnHistory.add(currentTurn);
             currentTurn = currentTurn.withPhase(Phase.BUILD);
             log.info("Game {} | Phase -> BUILD ({})", gameId, currentTurn.season() + " " + currentTurn.year());
         } else {
@@ -169,10 +171,10 @@ public final class Game {
             }
         }
 
-        Map<String, Nation> dislodgedNations = new HashMap<>();
+        Map<String, Unit> dislodgedUnitsByProvince = new HashMap<>();
         if (dislodgementResult != null) {
             for (Unit u : dislodgementResult.dislodgedUnits().keySet()) {
-                dislodgedNations.put(u.location().provinceName(), u.nation());
+                dislodgedUnitsByProvince.put(u.location().provinceName(), u);
             }
         }
 
@@ -180,25 +182,41 @@ public final class Game {
         List<String> retreatLog = new ArrayList<>();
         List<String> disbandLog = new ArrayList<>();
         for (Order order : retreatOrders) {
-            Nation nation = dislodgedNations.get(order.source().provinceName());
+            Unit dislodgedUnit = dislodgedUnitsByProvince.get(order.source().provinceName());
             if (order.type() == com.ulises.udiplomacy.domain.game.enums.OrderType.RETREAT) {
                 order.target().ifPresent(target -> {
-                    if (nation != null) {
-                        var relocatedUnit = new Unit(order.unit().unitType(), nation,
+                    if (dislodgedUnit != null) {
+                        var relocatedUnit = new Unit(order.unit().unitType(), dislodgedUnit.nation(),
                                 new Territory(target.provinceName()));
                         newUnits.add(relocatedUnit);
-                        provinceOwnership.put(target.provinceName(), nation);
-                        retreatLog.add(nation + " " + order.unit().unitType()
+                        provinceOwnership.put(target.provinceName(), dislodgedUnit.nation());
+                        retreatLog.add(dislodgedUnit.nation() + " " + order.unit().unitType()
                                 + " " + order.source().provinceName() + " -> " + target.provinceName());
                     }
                 });
             } else {
-                if (nation != null) {
-                    disbandLog.add(nation + " " + order.unit().unitType()
+                if (dislodgedUnit != null) {
+                    disbandLog.add(dislodgedUnit.nation() + " " + order.unit().unitType()
                             + " in " + order.source().provinceName());
                 }
             }
         }
+
+        // Auto-generate DISBAND orders for dislodged units without a retreat/disband order
+        List<Order> allResolvedOrders = new ArrayList<>(retreatOrders);
+        Map<Order, OrderResult> retreatResults = new HashMap<>();
+        for (Order order : retreatOrders) {
+            retreatResults.put(order, OrderResult.SUCCESS);
+        }
+        for (var entry : dislodgedUnitsByProvince.entrySet()) {
+            if (seenProvinces.contains(entry.getKey())) continue;
+            Unit u = entry.getValue();
+            Order disbandOrder = new Order(OrderType.DISBAND, u, u.location(), null, null);
+            allResolvedOrders.add(disbandOrder);
+            retreatResults.put(disbandOrder, OrderResult.SUCCESS);
+            disbandLog.add(u.nation() + " " + u.unitType() + " in " + u.location().provinceName());
+        }
+
         if (!retreatLog.isEmpty()) {
             log.info("Game {} | Retreats: {}", gameId, String.join(", ", retreatLog));
         }
@@ -206,9 +224,11 @@ public final class Game {
             log.info("Game {} | Disbands: {}", gameId, String.join(", ", disbandLog));
         }
         currentTurn = currentTurn.withUnits(newUnits);
+        currentTurn = currentTurn.withOrdersResolved(allResolvedOrders, retreatResults);
         this.dislodgementResult = null;
 
         if (currentTurn.season() == Season.AUTUMN) {
+            turnHistory.add(currentTurn);
             currentTurn = currentTurn.withPhase(Phase.BUILD);
             log.info("Game {} | Phase -> BUILD ({} {})", gameId, currentTurn.season(), currentTurn.year());
         } else {
@@ -291,6 +311,11 @@ public final class Game {
             log.info("Game {} | Disbands: {}", gameId, String.join(", ", disbandLog));
         }
         currentTurn = currentTurn.withUnits(newUnits);
+        Map<Order, OrderResult> buildResults = new HashMap<>();
+        for (Order order : buildOrders) {
+            buildResults.put(order, OrderResult.SUCCESS);
+        }
+        currentTurn = currentTurn.withOrdersResolved(buildOrders, buildResults);
         events.add(new TurnEnded(gameId, currentTurn.year(), currentTurn.season().name()));
 
         advanceToNextTurn();
@@ -361,24 +386,23 @@ public final class Game {
     }
 
     public void autoFillHolds() {
-        // Build map of actual units by province
         Map<String, Unit> unitsByProvince = new HashMap<>();
         for (Unit u : currentTurn.units()) {
             unitsByProvince.put(u.location().provinceName(), u);
         }
 
-        // Match stub orders to actual units; reject if unit type mismatches
+        // Replace stub units with actual game units so orders are logged with correct unit type
         List<Order> cleanedOrders = new ArrayList<>();
         for (Order order : orderPool.orders()) {
             Unit actualUnit = unitsByProvince.get(order.source().provinceName());
-            if (actualUnit != null && actualUnit.unitType() == order.unit().unitType()) {
+            if (actualUnit != null) {
                 cleanedOrders.add(new Order(order.type(), actualUnit, order.source(),
                         order.target().orElse(null), order.auxiliary().orElse(null)));
             }
         }
         orderPool = new OrderPool(cleanedOrders);
 
-        // Auto-fill holds for units still without orders
+        // Auto-fill holds for units without orders
         var orderedUnits = orderPool.orders().stream()
                 .map(Order::unit)
                 .toList();

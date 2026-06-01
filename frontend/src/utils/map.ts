@@ -110,6 +110,7 @@ export async function renderUnit(
   const g = document.createElementNS(SVG_NS, 'g')
   g.setAttribute('class', 'game-overlay')
   g.setAttribute('transform', `translate(${center.x - sz / 2}, ${center.y - sz / 2})`)
+  g.setAttribute('data-unit-label', `${unit.type === 'ARMY' ? 'A' : 'F'} ${unit.province}`)
   g.appendChild(unitSvg)
 
   if (flag) {

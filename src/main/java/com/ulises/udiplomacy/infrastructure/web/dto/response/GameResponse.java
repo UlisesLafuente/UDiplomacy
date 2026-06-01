@@ -21,7 +21,8 @@ public record GameResponse(
         List<HistoryEntry> history,
         List<UnitResponse> dislodgedUnits,
         List<BuildCapacityResponse> buildCapacities,
-        Map<String, String> provinceOwnership
+        Map<String, String> provinceOwnership,
+        Map<String, Integer> scores
 ) {
     public static GameResponse from(Game game) {
         var lastResolved = game.turnHistory().isEmpty()
@@ -71,6 +72,11 @@ public record GameResponse(
             ownership.put(entry.getKey(), entry.getValue().name());
         }
 
+        var scores = new HashMap<String, Integer>();
+        for (var entry : game.finalScores().entrySet()) {
+            scores.put(entry.getKey().name(), entry.getValue());
+        }
+
         return new GameResponse(
                 game.gameId(),
                 game.gameMap().name(),
@@ -88,7 +94,8 @@ public record GameResponse(
                 history,
                 dislodged,
                 buildCapacities,
-                ownership
+                ownership,
+                scores
         );
     }
 

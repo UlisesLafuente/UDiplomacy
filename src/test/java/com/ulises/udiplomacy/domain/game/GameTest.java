@@ -463,7 +463,7 @@ class GameTest {
     // --- unit type validation ---
 
     @Test
-    void autoFillHolds_rejectsOrderWithWrongUnitType() {
+    void autoFillHolds_correctsWrongUnitTypeAndLogsFailure() {
         var fleet = new Unit(UnitType.FLEET, england, new Territory("ROM"));
         game.start(List.of(fleet));
         // Submit order with wrong unit type (ARMY, but actual unit is FLEET)
@@ -475,11 +475,22 @@ class GameTest {
         var realResolver = new ConflictResolver();
         game.executeOrders(realResolver);
 
-        // The FLEET in ROM should NOT have moved (it should have been auto-filled HOLD)
+        // The order should be in the turn history (logged) with FAILURE
+        Turn histTurn = game.turnHistory().getLast();
+        var failedOrder = histTurn.resolvedOrders().stream()
+                .filter(o -> o.source().provinceName().equals("ROM"))
+                .findFirst();
+        assertTrue(failedOrder.isPresent(), "Order should be logged in history");
+        assertEquals(UnitType.FLEET, failedOrder.get().unit().unitType(),
+                "Unit type should be corrected to FLEET in history");
+        assertEquals(OrderResult.FAILURE, histTurn.resolvedResults().get(failedOrder.get()),
+                "FLEET ROM -> APU should fail (not a valid fleet route)");
+
+        // FLEET should stay in ROM
         assertTrue(game.currentTurn().units().stream()
                 .anyMatch(u -> u.location().provinceName().equals("ROM")
                         && u.unitType() == UnitType.FLEET),
-                "FLEET in ROM should still be there after wrong unit type order");
+                "FLEET in ROM should still be there");
         assertTrue(game.currentTurn().units().stream()
                 .noneMatch(u -> u.location().provinceName().equals("APU")),
                 "No unit should have moved to APU");

@@ -6,14 +6,10 @@ import com.ulises.udiplomacy.domain.game.enums.UnitType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
-import java.util.regex.Pattern;
+
 
 public final class OrderParser {
     private static final Logger log = LoggerFactory.getLogger(OrderParser.class);
-    private static final Pattern ORDER_PATTERN = Pattern.compile(
-            "^(ARMY|FLEET)\\s+(\\w+)\\s+([\\-SCRBD])\\s*(\\w+)?(?:\\s+(\\w+))?$"
-    );
 
     public Order parse(String raw, GameMap gameMap) {
         if (raw == null || raw.isBlank()) {
@@ -31,11 +27,7 @@ public final class OrderParser {
         String sourceProvince = parts[1];
         String action = parts[2];
 
-        Province source = gameMap.province(sourceProvince)
-                .orElseThrow(() -> {
-                    log.warn("Parse failed: unknown province '{}' in '{}'", sourceProvince, raw);
-                    return new IllegalArgumentException("Unknown province: " + sourceProvince);
-                });
+        Province source = requireProvince(gameMap, sourceProvince, raw);
 
         Unit stubUnit = new Unit(unitType, null, new Territory(sourceProvince));
         Territory sourceTerritory = new Territory(sourceProvince);
@@ -52,6 +44,7 @@ public final class OrderParser {
                     log.warn("Parse failed: move without target '{}'", raw);
                     throw new IllegalArgumentException("Move order requires a target province");
                 }
+                requireProvince(gameMap, targetProvince, raw);
                 Order o = new Order(OrderType.MOVE, stubUnit, sourceTerritory,
                         new Territory(targetProvince), null);
                 log.debug("Parsed: {} -> MOVE {} -> {}", raw, sourceProvince, targetProvince);
@@ -66,6 +59,10 @@ public final class OrderParser {
                 String targetOfSupport = parts.length > idx + 1 ? parts[idx + 1] : null;
                 if (targetOfSupport != null && targetOfSupport.equals("-")) {
                     targetOfSupport = parts.length > idx + 2 ? parts[idx + 2] : null;
+                }
+                requireProvince(gameMap, supportedUnit, raw);
+                if (targetOfSupport != null) {
+                    requireProvince(gameMap, targetOfSupport, raw);
                 }
                 Territory aux = new Territory(supportedUnit);
                 Territory target = targetOfSupport != null ? new Territory(targetOfSupport) : null;
@@ -84,6 +81,10 @@ public final class OrderParser {
                 if (targetOfConvoy != null && targetOfConvoy.equals("-")) {
                     targetOfConvoy = parts.length > idx + 2 ? parts[idx + 2] : null;
                 }
+                requireProvince(gameMap, transportedUnit, raw);
+                if (targetOfConvoy != null) {
+                    requireProvince(gameMap, targetOfConvoy, raw);
+                }
                 Territory aux = new Territory(transportedUnit);
                 Territory target = targetOfConvoy != null ? new Territory(targetOfConvoy) : null;
                 Order o = new Order(OrderType.CONVOY, stubUnit, sourceTerritory, target, aux);
@@ -96,6 +97,7 @@ public final class OrderParser {
                 if (retreatTarget == null) {
                     throw new IllegalArgumentException("Retreat order requires a target province");
                 }
+                requireProvince(gameMap, retreatTarget, raw);
                 Order o = new Order(OrderType.RETREAT, stubUnit, sourceTerritory,
                         new Territory(retreatTarget), null);
                 log.debug("Parsed: {} -> RETREAT {} -> {}", raw, sourceProvince, retreatTarget);
@@ -106,6 +108,7 @@ public final class OrderParser {
                 if (buildTarget == null) {
                     throw new IllegalArgumentException("Build order requires a target province");
                 }
+                requireProvince(gameMap, buildTarget, raw);
                 Order o = new Order(OrderType.BUILD, stubUnit, sourceTerritory,
                         new Territory(buildTarget), null);
                 log.debug("Parsed: {} -> BUILD {} in {}", raw, unitType, buildTarget);
@@ -121,6 +124,14 @@ public final class OrderParser {
                 throw new IllegalArgumentException("Unknown action: " + action);
             }
         };
+    }
+
+    private Province requireProvince(GameMap gameMap, String name, String raw) {
+        return gameMap.province(name)
+                .orElseThrow(() -> {
+                    log.warn("Parse failed: unknown province '{}' in '{}'", name, raw);
+                    return new IllegalArgumentException("Unknown province: " + name);
+                });
     }
 
     private int skipUnitPrefix(String[] parts, int start) {
