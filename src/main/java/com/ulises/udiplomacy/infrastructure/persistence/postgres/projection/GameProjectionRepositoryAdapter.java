@@ -21,6 +21,7 @@ public class GameProjectionRepositoryAdapter implements GameProjectionRepository
         var entity = new GameProjectionEntity();
         entity.setGameId(reference.gameId());
         entity.setUserId(reference.userId());
+        entity.setUsername(reference.username());
         entity.setGameName(reference.gameName());
         entity.setStatus(reference.status().name());
         entity.setCreatedAt(reference.createdAt());
@@ -51,7 +52,16 @@ public class GameProjectionRepositoryAdapter implements GameProjectionRepository
     @Override
     public List<GameReference> findByUserId(String userId) {
         return springRepository.findByUserId(userId).stream()
-                .map(e -> new GameReference(e.getGameId(), e.getUserId(), e.getGameName(),
+                .map(e -> new GameReference(e.getGameId(), e.getUserId(), e.getUsername(), e.getGameName(),
+                        GameState.valueOf(e.getStatus()),
+                        e.getCreatedAt(), e.getUpdatedAt()))
+                .toList();
+    }
+
+    @Override
+    public List<GameReference> findAll() {
+        return springRepository.findAll().stream()
+                .map(e -> new GameReference(e.getGameId(), e.getUserId(), e.getUsername(), e.getGameName(),
                         GameState.valueOf(e.getStatus()),
                         e.getCreatedAt(), e.getUpdatedAt()))
                 .toList();
@@ -60,7 +70,7 @@ public class GameProjectionRepositoryAdapter implements GameProjectionRepository
     @Override
     public Optional<GameReference> findByGameId(String gameId) {
         return springRepository.findById(gameId)
-                .map(e -> new GameReference(e.getGameId(), e.getUserId(), e.getGameName(),
+                .map(e -> new GameReference(e.getGameId(), e.getUserId(), e.getUsername(), e.getGameName(),
                         GameState.valueOf(e.getStatus()),
                         e.getCreatedAt(), e.getUpdatedAt()));
     }

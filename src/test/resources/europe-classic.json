@@ -182,7 +182,7 @@
       "name": "DEN",
       "type": "COASTAL",
       "homeNation": null,
-      "supplyCenter": false,
+      "supplyCenter": true,
       "coasts": null,
       "adjacencies": {
         "NTH": null,
@@ -211,7 +211,7 @@
       "name": "HOL",
       "type": "COASTAL",
       "homeNation": null,
-      "supplyCenter": false,
+      "supplyCenter": true,
       "coasts": null,
       "adjacencies": {
         "NTH": null,
@@ -224,7 +224,7 @@
       "name": "BEL",
       "type": "COASTAL",
       "homeNation": null,
-      "supplyCenter": false,
+      "supplyCenter": true,
       "coasts": null,
       "adjacencies": {
         "NTH": null,
@@ -331,7 +331,7 @@
       "name": "SPA",
       "type": "COASTAL",
       "homeNation": null,
-      "supplyCenter": false,
+      "supplyCenter": true,
       "coasts": [
         "north",
         "south"
@@ -348,7 +348,7 @@
       "name": "POR",
       "type": "COASTAL",
       "homeNation": null,
-      "supplyCenter": false,
+      "supplyCenter": true,
       "coasts": null,
       "adjacencies": {
         "SPA": null,
@@ -725,7 +725,7 @@
       "name": "SER",
       "type": "INLAND",
       "homeNation": null,
-      "supplyCenter": false,
+      "supplyCenter": true,
       "coasts": null,
       "adjacencies": {
         "TRI": null,
@@ -740,7 +740,7 @@
       "name": "RUM",
       "type": "COASTAL",
       "homeNation": null,
-      "supplyCenter": false,
+      "supplyCenter": true,
       "coasts": null,
       "adjacencies": {
         "BUD": null,
@@ -755,7 +755,7 @@
       "name": "BUL",
       "type": "COASTAL",
       "homeNation": null,
-      "supplyCenter": false,
+      "supplyCenter": true,
       "coasts": [
         "east",
         "south"
@@ -773,7 +773,7 @@
       "name": "GRE",
       "type": "COASTAL",
       "homeNation": null,
-      "supplyCenter": false,
+      "supplyCenter": true,
       "coasts": null,
       "adjacencies": {
         "SER": null,
@@ -956,7 +956,7 @@
       "name": "NOR",
       "type": "COASTAL",
       "homeNation": null,
-      "supplyCenter": false,
+      "supplyCenter": true,
       "coasts": null,
       "adjacencies": {
         "NWG": null,
@@ -971,7 +971,7 @@
       "name": "SWE",
       "type": "COASTAL",
       "homeNation": null,
-      "supplyCenter": false,
+      "supplyCenter": true,
       "coasts": null,
       "adjacencies": {
         "SKA": null,

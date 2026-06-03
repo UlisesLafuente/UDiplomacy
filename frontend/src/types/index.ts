@@ -88,6 +88,8 @@ export interface DislodgedUnitOptions {
 
 export interface GameReference {
   gameId: string
+  userId: string
+  username: string
   gameName: string
   status: string
   createdAt: string
@@ -125,8 +127,10 @@ export interface SubmitOrderRequest {
   rawOrder: string
 }
 
-export interface CreateMapVariantRequest {
-  name: string
-  mapJson: string
-  svgContent: string
+export interface UserResponse {
+  userId: string
+  username: string
+  role: Role
 }
+
+

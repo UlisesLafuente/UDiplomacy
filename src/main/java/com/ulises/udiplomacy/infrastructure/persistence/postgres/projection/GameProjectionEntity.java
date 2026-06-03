@@ -10,6 +10,7 @@ public class GameProjectionEntity {
     @Id
     private String gameId;
     private String userId;
+    private String username;
     private String gameName;
     private String status;
     private String winner;
@@ -23,6 +24,8 @@ public class GameProjectionEntity {
     public void setGameId(String gameId) { this.gameId = gameId; }
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
     public String getGameName() { return gameName; }
     public void setGameName(String gameName) { this.gameName = gameName; }
     public String getStatus() { return status; }

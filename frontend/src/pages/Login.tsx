@@ -13,8 +13,8 @@ export default function Login() {
     e.preventDefault()
     setError('')
     try {
-      await login(username, password)
-      navigate('/games')
+      const res = await login(username, password)
+      navigate(res.role === 'ADMIN' ? '/admin/users' : '/games')
     } catch {
       setError('Invalid credentials')
     }

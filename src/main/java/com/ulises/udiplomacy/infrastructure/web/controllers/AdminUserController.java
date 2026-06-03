@@ -1,11 +1,13 @@
 package com.ulises.udiplomacy.infrastructure.web.controllers;
 
+import com.ulises.udiplomacy.application.port.input.DeleteUserUseCase;
 import com.ulises.udiplomacy.application.port.input.ListUsersUseCase;
 import com.ulises.udiplomacy.application.port.input.UpdateUserRoleUseCase;
 import com.ulises.udiplomacy.infrastructure.web.dto.request.UpdateRoleRequest;
 import com.ulises.udiplomacy.infrastructure.web.dto.response.UserResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,11 +17,14 @@ import java.util.List;
 public class AdminUserController {
     private final ListUsersUseCase listUsersUseCase;
     private final UpdateUserRoleUseCase updateUserRoleUseCase;
+    private final DeleteUserUseCase deleteUserUseCase;
 
     public AdminUserController(ListUsersUseCase listUsersUseCase,
-                               UpdateUserRoleUseCase updateUserRoleUseCase) {
+                               UpdateUserRoleUseCase updateUserRoleUseCase,
+                               DeleteUserUseCase deleteUserUseCase) {
         this.listUsersUseCase = listUsersUseCase;
         this.updateUserRoleUseCase = updateUserRoleUseCase;
+        this.deleteUserUseCase = deleteUserUseCase;
     }
 
     @GetMapping
@@ -33,5 +38,12 @@ public class AdminUserController {
                                             @Valid @RequestBody UpdateRoleRequest request) {
         updateUserRoleUseCase.execute(userId, request.role());
         return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteUser(@PathVariable String userId,
+                                            Authentication auth) {
+        deleteUserUseCase.execute(userId, auth.getName());
+        return ResponseEntity.noContent().build();
     }
 }

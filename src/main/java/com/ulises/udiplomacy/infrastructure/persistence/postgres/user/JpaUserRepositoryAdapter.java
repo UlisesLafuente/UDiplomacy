@@ -40,6 +40,11 @@ public class JpaUserRepositoryAdapter implements UserRepository {
         return springRepository.findAll().stream().map(this::toDomain).toList();
     }
 
+    @Override
+    public void deleteById(String userId) {
+        springRepository.deleteById(userId);
+    }
+
     private User toDomain(UserEntity entity) {
         return new User(entity.getUserId(), entity.getUsername(),
                 entity.getPasswordHash(), Role.valueOf(entity.getRole()));

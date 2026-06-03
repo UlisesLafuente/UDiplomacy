@@ -8,8 +8,9 @@ import type {
   CreateGameRequest,
   SubmitOrderRequest,
   MapVariant,
-  CreateMapVariantRequest,
   RetreatOptionsResponse,
+  UserResponse,
+  Role,
 } from '@/types'
 
 export const auth = {
@@ -21,9 +22,9 @@ export const auth = {
 
 export const games = {
   list: () =>
-    api.get<GameReference[]>('/games').then((r) => r.data),
+    api.get<GameReference[]>('/games', { params: { _t: Date.now() } }).then((r) => r.data),
   get: (id: string) =>
-    api.get<Game>(`/games/${id}`).then((r) => r.data),
+    api.get<Game>(`/games/${id}`, { params: { _t: Date.now() } }).then((r) => r.data),
   create: (data: CreateGameRequest) =>
     api.post<Game>('/games', data).then((r) => r.data),
   submitOrder: (gameId: string, rawOrder: string) =>
@@ -57,8 +58,25 @@ export const maps = {
     api.get<MapVariant>(`/maps/${id}`).then((r) => r.data),
   getSvg: (id: string) =>
     api.get<string>(`/maps/${id}/svg`, { responseType: 'text' }).then((r) => r.data),
-  create: (data: CreateMapVariantRequest) =>
-    api.post<MapVariant>('/admin/maps', data).then((r) => r.data),
+  create: (data: FormData) =>
+    api.post<MapVariant>('/admin/maps', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data),
+}
+
+export const admin = {
+  listUsers: () =>
+    api.get<UserResponse[]>('/admin/users').then((r) => r.data),
+  updateRole: (userId: string, role: Role) =>
+    api.put(`/admin/users/${userId}/role`, { role }),
+  deleteUser: (userId: string) =>
+    api.delete(`/admin/users/${userId}`),
+  listGames: () =>
+    api.get<GameReference[]>('/admin/games').then((r) => r.data),
+  deleteGame: (gameId: string) =>
+    api.delete(`/admin/games/${gameId}`),
+  deleteMap: (mapId: string) =>
+    api.delete(`/admin/maps/${mapId}`),
 }
 
 export const orders = {

@@ -11,6 +11,8 @@ import com.ulises.udiplomacy.domain.game.enums.UnitType;
 import com.ulises.udiplomacy.domain.user.GameReference;
 import com.ulises.udiplomacy.application.port.output.GameProjectionRepository;
 import com.ulises.udiplomacy.application.port.output.MapVariantRepository;
+import com.ulises.udiplomacy.application.port.output.UserRepository;
+import com.ulises.udiplomacy.domain.user.Role;
 
 import java.time.Instant;
 import java.util.*;
@@ -20,20 +22,28 @@ public class CreateGameService implements CreateGameUseCase {
     private final GameRepository gameRepository;
     private final GameProjectionRepository projectionRepository;
     private final MapVariantRepository mapVariantRepository;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
     public CreateGameService(GameRepository gameRepository,
                              GameProjectionRepository projectionRepository,
                              MapVariantRepository mapVariantRepository,
+                             UserRepository userRepository,
                              ObjectMapper objectMapper) {
         this.gameRepository = gameRepository;
         this.projectionRepository = projectionRepository;
         this.mapVariantRepository = mapVariantRepository;
+        this.userRepository = userRepository;
         this.objectMapper = objectMapper;
     }
 
     @Override
     public Game execute(String mapId, String mapJson, String userId) {
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+        if (user.role() == Role.ADMIN) {
+            throw new IllegalArgumentException("Admin accounts cannot create games");
+        }
         try {
             String json = resolveMapJson(mapId, mapJson);
             Map<String, Object> root = objectMapper.readValue(json, new TypeReference<>() {});
@@ -48,7 +58,7 @@ public class CreateGameService implements CreateGameUseCase {
             gameRepository.save(game);
 
             projectionRepository.saveGameReference(new GameReference(
-                    gameId, userId, gameMap.name(), GameState.IN_PROGRESS,
+                    gameId, userId, user.username(), gameMap.name(), GameState.IN_PROGRESS,
                     Instant.now(), Instant.now()));
 
             return game;

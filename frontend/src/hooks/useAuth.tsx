@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { auth } from '@/api'
-import type { Role } from '@/types'
+import type { AuthResponse, Role } from '@/types'
 
 interface AuthState {
   token: string | null
@@ -9,7 +9,7 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  login: (username: string, password: string) => Promise<void>
+  login: (username: string, password: string) => Promise<AuthResponse>
   register: (username: string, password: string, role?: Role) => Promise<void>
   logout: () => void
   isAdmin: boolean
@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (username: string, password: string) => {
     const res = await auth.login({ username, password })
     saveAuth(res.token, res.username, res.role)
+    return res
   }, [saveAuth])
 
   const register = useCallback(async (username: string, password: string) => {

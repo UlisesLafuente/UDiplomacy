@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { games, maps } from '@/api'
 import { useAuth } from '@/hooks/useAuth'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import type { GameReference, MapVariant } from '@/types'
 
 export default function Games() {
-  const { username, logout } = useAuth()
+  const { username, logout, isAdmin } = useAuth()
   const navigate = useNavigate()
   const [gameList, setGameList] = useState<GameReference[]>([])
   const [variants, setVariants] = useState<MapVariant[]>([])
@@ -43,6 +43,13 @@ export default function Games() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Partidas</h1>
         <div className="flex items-center gap-4">
+          {isAdmin && (
+            <>
+              <Link to="/admin/games" className="text-sm text-blue-600 hover:underline">Games</Link>
+              <Link to="/admin/users" className="text-sm text-blue-600 hover:underline">Users</Link>
+              <Link to="/admin/maps" className="text-sm text-blue-600 hover:underline">Maps</Link>
+            </>
+          )}
           <span className="text-sm text-gray-600">{username}</span>
           <button onClick={logout} className="text-sm text-red-600 hover:underline">
             Logout
@@ -50,30 +57,32 @@ export default function Games() {
         </div>
       </div>
 
-      <div className="mb-8 rounded-lg border p-4">
-        <h2 className="mb-3 font-semibold">Nueva partida</h2>
-        <div className="flex gap-3">
-          <select
-            className="flex-1 rounded border px-3 py-2"
-            value={selectedMapId}
-            onChange={(e) => setSelectedMapId(e.target.value)}
-          >
-            <option value="">— Seleccionar mapa —</option>
-            {variants.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={createGame}
-            disabled={creating || !selectedMapId}
-            className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-          >
-            {creating ? 'Creando...' : 'Crear'}
-          </button>
+      {!isAdmin && (
+        <div className="mb-8 rounded-lg border p-4">
+          <h2 className="mb-3 font-semibold">Nueva partida</h2>
+          <div className="flex gap-3">
+            <select
+              className="flex-1 rounded border px-3 py-2"
+              value={selectedMapId}
+              onChange={(e) => setSelectedMapId(e.target.value)}
+            >
+              <option value="">— Seleccionar mapa —</option>
+              {variants.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={createGame}
+              disabled={creating || !selectedMapId}
+              className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              {creating ? 'Creando...' : 'Crear'}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="space-y-3">
         {gameList.map((g) => (

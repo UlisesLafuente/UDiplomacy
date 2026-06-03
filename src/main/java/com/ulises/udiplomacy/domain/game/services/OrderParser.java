@@ -17,7 +17,8 @@ public final class OrderParser {
             throw new IllegalArgumentException("Order cannot be empty");
         }
 
-        var parts = raw.trim().split("\\s+");
+        raw = raw.trim().toUpperCase();
+        var parts = raw.split("\\s+");
         if (parts.length < 3) {
             log.warn("Parse failed: too few tokens in '{}'", raw);
             throw new IllegalArgumentException("Invalid order format: " + raw);

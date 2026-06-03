@@ -229,6 +229,25 @@ public final class ConflictResolver {
                 continue;
             }
         }
+
+        // Detect swap moves: two units trying to exchange provinces
+        Map<String, String> moveTargets = new HashMap<>();
+        for (Order order : orders) {
+            if (order.type() != OrderType.MOVE) continue;
+            String src = order.source().provinceName();
+            String tgt = order.target().map(Territory::provinceName).orElse(null);
+            if (tgt != null) {
+                moveTargets.put(src, tgt);
+            }
+        }
+        for (var entry : moveTargets.entrySet()) {
+            String otherTarget = moveTargets.get(entry.getValue());
+            if (entry.getKey().equals(otherTarget)) {
+                invalidSources.add(entry.getKey());
+                invalidSources.add(entry.getValue());
+            }
+        }
+
         return invalidSources;
     }
 
@@ -280,7 +299,8 @@ public final class ConflictResolver {
                 if (defenseOrder != null
                         && (defenseOrder.type() == OrderType.HOLD
                         || defenseOrder.type() == OrderType.MOVE)) {
-                    if (defenseOrder.type() == OrderType.HOLD) {
+                    if (defenseOrder.type() == OrderType.HOLD
+                            || invalidMoves.contains(defenseOrder.source().provinceName())) {
                         defenseStrength = 1 + effectiveSupport.getOrDefault(defenseOrder, 0);
                     } else {
                         defenseStrength = 0;

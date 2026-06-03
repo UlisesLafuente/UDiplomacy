@@ -5,6 +5,8 @@ import Register from '@/pages/Register'
 import Games from '@/pages/Games'
 import GameDetail from '@/pages/GameDetail'
 import AdminMaps from '@/pages/AdminMaps'
+import AdminUsers from '@/pages/AdminUsers'
+import AdminGames from '@/pages/AdminGames'
 import type { ReactNode } from 'react'
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -17,6 +19,13 @@ function RequireAdmin({ children }: { children: ReactNode }) {
   const { isAdmin } = useAuth()
   if (!isAdmin) return <Navigate to="/games" replace />
   return <>{children}</>
+}
+
+function Redirector() {
+  const { isAuthenticated, isAdmin } = useAuth()
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (isAdmin) return <Navigate to="/admin/users" replace />
+  return <Navigate to="/games" replace />
 }
 
 function App() {
@@ -43,6 +52,22 @@ function App() {
             }
           />
           <Route
+            path="/admin/games"
+            element={
+              <RequireAdmin>
+                <AdminGames />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <RequireAdmin>
+                <AdminUsers />
+              </RequireAdmin>
+            }
+          />
+          <Route
             path="/admin/maps"
             element={
               <RequireAdmin>
@@ -50,7 +75,7 @@ function App() {
               </RequireAdmin>
             }
           />
-          <Route path="*" element={<Navigate to="/games" replace />} />
+          <Route path="*" element={<Redirector />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

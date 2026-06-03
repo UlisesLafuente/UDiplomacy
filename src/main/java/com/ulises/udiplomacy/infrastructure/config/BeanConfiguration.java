@@ -91,9 +91,10 @@ public class BeanConfiguration {
     public CreateGameUseCase createGameUseCase(GameRepository gameRepository,
                                                 GameProjectionRepository projectionRepository,
                                                 MapVariantRepository mapVariantRepository,
+                                                UserRepository userRepository,
                                                 ObjectMapper objectMapper) {
         return new CreateGameService(gameRepository, projectionRepository,
-                mapVariantRepository, objectMapper);
+                mapVariantRepository, userRepository, objectMapper);
     }
 
     @Bean
@@ -130,6 +131,11 @@ public class BeanConfiguration {
     @Bean
     public ListUserGamesUseCase listUserGamesUseCase(GameProjectionRepository projectionRepository) {
         return new ListUserGamesService(projectionRepository);
+    }
+
+    @Bean
+    public ListAllGamesUseCase listAllGamesUseCase(GameProjectionRepository projectionRepository) {
+        return new ListAllGamesService(projectionRepository);
     }
 
     @Bean
@@ -231,5 +237,10 @@ public class BeanConfiguration {
     @Bean
     public UpdateUserRoleUseCase updateUserRoleUseCase(UserRepository repository) {
         return new UpdateUserRoleService(repository);
+    }
+
+    @Bean
+    public DeleteUserUseCase deleteUserUseCase(UserRepository repository) {
+        return new DeleteUserService(repository);
     }
 }

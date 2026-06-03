@@ -4,8 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulises.udiplomacy.application.port.output.GameProjectionRepository;
 import com.ulises.udiplomacy.application.port.output.GameRepository;
 import com.ulises.udiplomacy.application.port.output.MapVariantRepository;
+import com.ulises.udiplomacy.application.port.output.UserRepository;
 import com.ulises.udiplomacy.domain.game.*;
 import com.ulises.udiplomacy.domain.game.enums.UnitType;
+import com.ulises.udiplomacy.domain.user.Role;
+import com.ulises.udiplomacy.domain.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +28,7 @@ class CreateGameServiceTest {
     @Mock private GameRepository gameRepository;
     @Mock private GameProjectionRepository projectionRepository;
     @Mock private MapVariantRepository mapVariantRepository;
+    @Mock private UserRepository userRepository;
     private CreateGameService service;
     private String mapJson;
 
@@ -32,8 +36,10 @@ class CreateGameServiceTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        when(userRepository.findById("user-1"))
+                .thenReturn(java.util.Optional.of(new User("user-1", "test", "", Role.PLAYER)));
         service = new CreateGameService(gameRepository, projectionRepository,
-                mapVariantRepository, new ObjectMapper());
+                mapVariantRepository, userRepository, new ObjectMapper());
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("europe-classic.json")) {
             mapJson = new String(is.readAllBytes());
         }

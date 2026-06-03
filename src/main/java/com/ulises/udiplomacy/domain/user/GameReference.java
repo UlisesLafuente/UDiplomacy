@@ -8,15 +8,17 @@ import java.util.Objects;
 public final class GameReference {
     private final String gameId;
     private final String userId;
+    private final String username;
     private final String gameName;
     private final GameState status;
     private final Instant createdAt;
     private final Instant updatedAt;
 
-    public GameReference(String gameId, String userId, String gameName,
+    public GameReference(String gameId, String userId, String username, String gameName,
                          GameState status, Instant createdAt, Instant updatedAt) {
         this.gameId = gameId;
         this.userId = userId;
+        this.username = username;
         this.gameName = gameName;
         this.status = status;
         this.createdAt = createdAt;
@@ -25,6 +27,7 @@ public final class GameReference {
 
     public String gameId() { return gameId; }
     public String userId() { return userId; }
+    public String username() { return username; }
     public String gameName() { return gameName; }
     public GameState status() { return status; }
     public Instant createdAt() { return createdAt; }
