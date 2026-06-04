@@ -47,7 +47,7 @@ public class CreateGameService implements CreateGameUseCase {
         try {
             String json = resolveMapJson(mapId, mapJson);
             Map<String, Object> root = objectMapper.readValue(json, new TypeReference<>() {});
-            GameMap gameMap = parseMap(root);
+            GameMap gameMap = parseMap(root, mapId);
             Set<Nation> nations = extractNations(gameMap);
 
             String gameId = UUID.randomUUID().toString();
@@ -76,53 +76,60 @@ public class CreateGameService implements CreateGameUseCase {
         return mapJson;
     }
 
-    @SuppressWarnings("unchecked")
-    private GameMap parseMap(Map<String, Object> root) {
-        List<Map<String, Object>> provincesRaw = (List<Map<String, Object>>) root.get("provinces");
+    private GameMap parseMap(Map<String, Object> root, String mongoId) {
+        Object provincesObj = root.get("provinces");
+        if (!(provincesObj instanceof List<?> provincesRaw)) {
+            throw new IllegalArgumentException("Map JSON must contain a 'provinces' array");
+        }
         List<Province> provinces = new ArrayList<>();
 
-        for (Map<String, Object> p : provincesRaw) {
+        for (Object provinceObj : provincesRaw) {
+            if (!(provinceObj instanceof Map<?, ?> p)) continue;
             String name = (String) p.get("name");
-            ProvinceType type = ProvinceType.valueOf((String) p.get("type"));
+            ProvinceType type = ProvinceType.valueOf(((String) p.get("type")).toUpperCase());
             String homeNationStr = (String) p.get("homeNation");
             Nation homeNation = homeNationStr != null ? new Nation(homeNationStr) : null;
             boolean supplyCenter = Boolean.TRUE.equals(p.get("supplyCenter"));
 
-            List<String> coastsRaw = (List<String>) p.get("coasts");
-            List<Coast> coasts = coastsRaw != null
-                    ? coastsRaw.stream().map(Coast::new).toList()
-                    : List.of();
+            Object coastsObj = p.get("coasts");
+            List<Coast> coasts;
+            if (coastsObj instanceof List<?> coastsList) {
+                coasts = coastsList.stream().map(c -> new Coast((String) c)).toList();
+            } else {
+                coasts = List.of();
+            }
 
-            Map<String, String> adjRaw = (Map<String, String>) p.get("adjacencies");
+            Object adjObj = p.get("adjacencies");
             Map<String, Coast> adjacencies = new HashMap<>();
-            if (adjRaw != null) {
+            if (adjObj instanceof Map<?, ?> adjRaw) {
                 for (var entry : adjRaw.entrySet()) {
-                    adjacencies.put(entry.getKey(),
-                            entry.getValue() != null ? new Coast(entry.getValue()) : null);
+                    adjacencies.put((String) entry.getKey(),
+                            entry.getValue() != null ? new Coast((String) entry.getValue()) : null);
                 }
             }
 
             provinces.add(new Province(name, type, homeNation, supplyCenter, coasts, adjacencies));
         }
 
-        String id = (String) root.get("id");
+        String id = mongoId != null ? mongoId : (String) root.get("id");
         String name = (String) root.get("name");
         return new GameMap(id != null ? id : "europe-classic",
                 name != null ? name : "Classic Diplomacy Europe", provinces);
     }
 
-    @SuppressWarnings("unchecked")
     private List<Unit> parseInitialUnits(Map<String, Object> root) {
-        List<Map<String, Object>> initialUnitsRaw = (List<Map<String, Object>>) root.get("initialUnits");
-        if (initialUnitsRaw == null) return List.of();
+        if (!(root.get("initialUnits") instanceof List<?> initialUnitsRaw)) {
+            return List.of();
+        }
 
         List<Unit> units = new ArrayList<>();
-        for (Map<String, Object> nationGroup : initialUnitsRaw) {
-            List<Map<String, Object>> rawUnits = (List<Map<String, Object>>) nationGroup.get("units");
-            if (rawUnits == null) continue;
-            for (Map<String, Object> rawUnit : rawUnits) {
+        for (Object groupObj : initialUnitsRaw) {
+            if (!(groupObj instanceof Map<?, ?> nationGroup)) continue;
+            if (!(nationGroup.get("units") instanceof List<?> rawUnits)) continue;
+            for (Object unitObj : rawUnits) {
+                if (!(unitObj instanceof Map<?, ?> rawUnit)) continue;
                 Nation nation = new Nation((String) rawUnit.get("nation"));
-                UnitType unitType = UnitType.valueOf((String) rawUnit.get("unitType"));
+                UnitType unitType = UnitType.valueOf(((String) rawUnit.get("unitType")).toUpperCase());
                 Territory location = new Territory((String) rawUnit.get("province"));
                 units.add(new Unit(unitType, nation, location));
             }

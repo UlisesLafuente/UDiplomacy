@@ -1,15 +1,16 @@
 package com.ulises.udiplomacy.shared.error;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.net.URI;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(DomainException.class)
     public ProblemDetail handleDomainException(DomainException ex) {
@@ -41,6 +42,15 @@ public class GlobalExceptionHandler {
                 .orElse("Validation failed");
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, message);
         detail.setTitle("Validation Error");
+        return detail;
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleUnexpected(Exception ex) {
+        log.error("Unexpected error", ex);
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Internal server error: " + ex.getMessage());
+        detail.setTitle("Internal Error");
         return detail;
     }
 }

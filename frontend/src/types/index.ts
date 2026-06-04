@@ -41,6 +41,7 @@ export interface Turn {
 
 export interface Game {
   gameId: string
+  mapId: string
   mapName: string
   state: string
   season: string
@@ -57,6 +58,7 @@ export interface Game {
   buildCapacities: BuildCapacity[]
   provinceOwnership: Record<string, string>
   scores: Record<string, number>
+  provinceTypes: Record<string, string>
 }
 
 export interface HistoryEntry {

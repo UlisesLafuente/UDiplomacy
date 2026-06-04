@@ -43,6 +43,7 @@ public final class GameMap {
     public List<Province> homeCentersFor(Nation nation) {
         return provinces.values().stream()
                 .filter(p -> p.homeNation().map(nation::equals).orElse(false))
+                .filter(Province::isSupplyCenter)
                 .toList();
     }
 

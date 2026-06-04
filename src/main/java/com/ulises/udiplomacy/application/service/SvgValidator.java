@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 
 public class SvgValidator {
 
-    private static final Pattern DATA_CODE_PATTERN = Pattern.compile("data-code=\"([A-Z]{3})\"");
+    private static final Pattern DATA_CODE_PATTERN = Pattern.compile("data-code=\"([A-Z0-9]+)\"");
 
     public void validate(String svgContent, String mapJson) {
         List<String> errors = new ArrayList<>();

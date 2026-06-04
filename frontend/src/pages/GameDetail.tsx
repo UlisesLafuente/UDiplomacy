@@ -78,8 +78,9 @@ export default function GameDetail() {
     svg.querySelectorAll('.game-overlay').forEach((el) => el.remove())
 
     for (const [province, nation] of Object.entries(g.provinceOwnership ?? {})) {
+      if (g.provinceTypes[province] === 'SEA') continue
       const path = svg.getElementById(`provincia-${province}`)
-      if (path && !path.classList.contains('provincia-sea')) {
+      if (path) {
         (path as HTMLElement).style.fill = getNationColor(nation)
       }
     }
@@ -116,10 +117,10 @@ export default function GameDetail() {
     })
   }, [])
 
-  const loadMapSvg = async () => {
+  const loadMapSvg = async (mapId: string) => {
     try {
       const token = localStorage.getItem('token')
-      const resp = await fetch('/api/maps/europe-classic/svg', {
+      const resp = await fetch(`/api/maps/${mapId}/svg`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const svgText = await resp.text()
@@ -151,8 +152,10 @@ export default function GameDetail() {
   useEffect(() => {
     if (!id) return
     setLoading(true)
-    Promise.all([fetchGame(), loadMapSvg()]).then(([g]) => {
-      if (g) renderMap(g)
+    fetchGame().then((g) => {
+      if (g) {
+        return loadMapSvg(g.mapId).then(() => renderMap(g))
+      }
     }).finally(() => setLoading(false))
   }, [id, fetchGame, renderMap])
 

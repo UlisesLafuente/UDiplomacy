@@ -11,6 +11,7 @@ export default function Games() {
   const [variants, setVariants] = useState<MapVariant[]>([])
   const [selectedMapId, setSelectedMapId] = useState('')
   const [creating, setCreating] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     games.list().then(setGameList).catch(() => {})
@@ -19,10 +20,15 @@ export default function Games() {
 
   const createGame = async () => {
     setCreating(true)
+    setError('')
     try {
       const game = await games.create({ mapId: selectedMapId || undefined })
       navigate(`/games/${game.gameId}`)
-    } catch {
+    } catch (err: any) {
+      const url = err.response?.config?.url || '?'
+      const status = err.response?.status || '?'
+      const data = JSON.stringify(err.response?.data || {})
+      setError(`[${status}] ${url}: ${data}`)
       setCreating(false)
     }
   }
@@ -60,6 +66,7 @@ export default function Games() {
       {!isAdmin && (
         <div className="mb-8 rounded-lg border p-4">
           <h2 className="mb-3 font-semibold">Nueva partida</h2>
+          {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
           <div className="flex gap-3">
             <select
               className="flex-1 rounded border px-3 py-2"

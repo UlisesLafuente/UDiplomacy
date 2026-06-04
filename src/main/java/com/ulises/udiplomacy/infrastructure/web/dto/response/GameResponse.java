@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 public record GameResponse(
         String gameId,
+        String mapId,
         String mapName,
         String state,
         String season,
@@ -22,7 +23,8 @@ public record GameResponse(
         List<UnitResponse> dislodgedUnits,
         List<BuildCapacityResponse> buildCapacities,
         Map<String, String> provinceOwnership,
-        Map<String, Integer> scores
+        Map<String, Integer> scores,
+        Map<String, String> provinceTypes
 ) {
     public static GameResponse from(Game game) {
         var lastResolved = game.turnHistory().isEmpty()
@@ -77,8 +79,14 @@ public record GameResponse(
             scores.put(entry.getKey().name(), entry.getValue());
         }
 
+        var provinceTypes = new HashMap<String, String>();
+        for (var entry : game.gameMap().provinces().entrySet()) {
+            provinceTypes.put(entry.getKey(), entry.getValue().type().name());
+        }
+
         return new GameResponse(
                 game.gameId(),
+                game.gameMap().id(),
                 game.gameMap().name(),
                 game.state().name(),
                 game.currentTurn().season().name(),
@@ -95,7 +103,8 @@ public record GameResponse(
                 dislodged,
                 buildCapacities,
                 ownership,
-                scores
+                scores,
+                provinceTypes
         );
     }
 

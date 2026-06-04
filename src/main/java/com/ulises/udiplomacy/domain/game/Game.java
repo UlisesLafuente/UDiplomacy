@@ -277,23 +277,23 @@ public final class Game {
         for (Order order : buildOrders) {
             if (order.type() == com.ulises.udiplomacy.domain.game.enums.OrderType.BUILD) {
                 order.target().ifPresent(target -> {
-                    if (gameMap.province(target.provinceName())
-                            .map(p -> order.unit().unitType() == UnitType.ARMY || p.isCoastal())
-                            .orElse(false)) {
-                        Nation nation = null;
-                        for (Nation n : nations) {
-                            if (gameMap.homeCentersFor(n).stream()
-                                    .anyMatch(p -> p.name().equals(target.provinceName()))) {
-                                nation = n;
-                                break;
-                            }
+                    var prov = gameMap.province(target.provinceName()).orElse(null);
+                    if (prov == null || !prov.isSupplyCenter()) return;
+                    if (order.unit().unitType() != UnitType.ARMY && !prov.isCoastal()) return;
+                    Nation nation = null;
+                    for (Nation n : nations) {
+                        if (gameMap.homeCentersFor(n).stream()
+                                .anyMatch(p -> p.name().equals(target.provinceName()))) {
+                            nation = n;
+                            break;
                         }
-                        var newUnit = new Unit(order.unit().unitType(), nation,
-                                new Territory(target.provinceName()));
-                        newUnits.add(newUnit);
-                        buildLog.add(nation + " " + order.unit().unitType()
-                                + " in " + target.provinceName());
                     }
+                    if (nation == null) return;
+                    var newUnit = new Unit(order.unit().unitType(), nation,
+                            new Territory(target.provinceName()));
+                    newUnits.add(newUnit);
+                    buildLog.add(nation + " " + order.unit().unitType()
+                            + " in " + target.provinceName());
                 });
             } else {
                 Unit actualUnit = actualUnitsByProvince.get(order.source().provinceName());
