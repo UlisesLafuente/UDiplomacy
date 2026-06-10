@@ -1,0 +1,490 @@
+{
+  "id": "testVariant",
+  "name": "Variante 1 de test",
+  "provinces": [
+    {
+      "name": "MA1",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "SUN": null,
+        "NIE": null,
+        "MA2": null,
+        "MA3": null
+      }
+    },
+    {
+      "name": "MA2",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "MA1": null,
+        "NIE": null,
+        "BOL": null,
+        "VYR": "north",
+        "MA3": null
+      }
+    },
+    {
+      "name": "MA3",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "MA1": null,
+        "MA2": null,
+        "VYR": null,
+        "MA4": null,
+        "MA5": null
+      }
+    },
+    {
+      "name": "MA4",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "MA3": null,
+        "MA5": null,
+        "MA6": null
+      }
+    },
+    {
+      "name": "MA5",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "VYR": "south",
+        "MA3": null,
+        "MA4": null,
+        "MA6": null,
+        "MA7": null
+      }
+    },
+    {
+      "name": "MA6",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "MA4": null,
+        "MA5": null,
+        "MA7": null,
+        "BIS": null,
+        "MA8": null
+      }
+    },
+    {
+      "name": "MA7",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "MAS": null,
+        "PER": null,
+        "MA5": null,
+        "MA6": null,
+        "BIS": null,
+        "UNT": null,
+        "SPR": null,
+        "MA8": null
+      }
+    },
+    {
+      "name": "MA8",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "BIS": "north",
+        "MA6": null,
+        "MA9": null,
+        "SHU": null,
+        "MA11": null
+      }
+    },
+    {
+      "name": "MA9",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "MA10": null,
+        "MA11": null,
+        "MA8": null
+      }
+    },
+    {
+      "name": "MA10",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "MA12": null,
+        "NAR": null,
+        "MA11": null,
+        "MA9": null
+      }
+    },
+    {
+      "name": "MA11",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "MA10": null,
+        "NAR": null,
+        "SHU": null,
+        "MA8": null,
+        "MA9": null
+      }
+    },
+    {
+      "name": "MA12",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "MA13": null,
+        "POU": null,
+        "NAR": null,
+        "MA10": null
+      }
+    },
+    {
+      "name": "MA13",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "LIS": null,
+        "MA14": null,
+        "LAO": null,
+        "WES": null,
+        "POU": null,
+        "MA12": null
+      }
+    },
+    {
+      "name": "MA14",
+      "type": "SEA",
+      "homeNation": null,
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "LIS": null,
+        "TEP": null,
+        "SAS": null,
+        "LAO": null,
+        "MA13": null
+      }
+    },
+    {
+      "name": "LIS",
+      "type": "COASTAL",
+      "homeNation": "FRANCE",
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "SUN": null,
+        "TEP": null,
+        "MA14": null,
+        "MA13": null
+      }
+    },
+    {
+      "name": "TEP",
+      "type": "COASTAL",
+      "homeNation": "FRANCE",
+      "supplyCenter": true,
+      "coasts": null,
+      "adjacencies": {
+        "SUN": null,
+        "SAS": null,
+        "MA14": null,
+        "LIS": null
+      }
+    },
+    {
+      "name": "SUN",
+      "type": "COASTAL",
+      "homeNation": "FRANCE",
+      "supplyCenter": true,
+      "coasts": null,
+      "adjacencies": {
+        "MA1": null,
+        "NIE": null,
+        "SAS": null,
+        "TEP": null,
+        "LIS": null
+      }
+    },
+    {
+      "name": "NIE",
+      "type": "COASTAL",
+      "homeNation": "FRANCE",
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "SUN": null,
+        "MA1": null,
+        "MA2": null,
+        "BOL": null,
+        "SAS": null
+      }
+    },
+    {
+      "name": "BOL",
+      "type": "COASTAL",
+      "homeNation": "FRANCE",
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "NIE": null,
+        "MA2": null,
+        "VYR": null,
+        "PER": null,
+        "SAS": null,
+        "MAS": null
+      }
+    },
+    {
+      "name": "VYR",
+      "type": "COASTAL",
+      "homeNation": "FRANCE",
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "BOL": null,
+        "MA2": null,
+        "MA3": null,
+        "MA5": null,
+        "PER": null
+      }
+      },
+      {
+      "name": "PER",
+      "type": "COASTAL",
+      "homeNation": "FRANCE",
+      "supplyCenter": true,
+      "coasts": null,
+      "adjacencies": {
+        "BOL": null,
+        "VYR": null,
+        "MA5": null,
+        "MA7": null,
+        "MAS": null
+      }
+    },
+    {
+      "name": "MAS",
+      "type": "COASTAL",
+      "homeNation": null,
+      "supplyCenter": true,
+      "coasts": null,
+      "adjacencies": {
+        "SAS": null,
+        "BOL": null,
+        "PER": null,
+        "MA7": null,
+        "WES": null,
+        "SPR": null
+      }
+    },
+    {
+      "name": "SAS",
+      "type": "COASTAL",
+      "homeNation": null,
+      "supplyCenter": true,
+      "coasts": null,
+      "adjacencies": {
+        "MA14": null,
+        "TEP": null,
+        "SUN": null,
+        "NIE": null,
+        "BOL": null,
+        "WES": null,
+        "LAO": null,
+        "MAS": null
+      }
+    },
+    {
+      "name": "LAO",
+      "type": "COASTAL",
+      "homeNation": null,
+      "supplyCenter": true,
+      "coasts": null,
+      "adjacencies": {
+        "MA14": null,
+        "SAS": null,
+        "WES": null,
+        "MA13": null
+      }
+    },
+    {
+      "name": "BIS",
+      "type": "COASTAL",
+      "homeNation": "ENGLAND",
+      "supplyCenter": true,
+      "coasts": ["north", "south"],
+      "adjacencies": {
+        "SHU": null,
+        "UNT": null,
+        "MA7": "south",
+        "MA6": null,
+        "MA8": "north"
+      }
+    },
+    {
+      "name": "UNT",
+      "type": "COASTAL",
+      "homeNation": "ENGLAND",
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "SPR": null,
+        "SHU": null,
+        "MA7": null,
+        "BIS": null
+      }
+    },
+    {
+      "name": "SHU",
+      "type": "COASTAL",
+      "homeNation": "ENGLAND",
+      "supplyCenter": true,
+      "coasts": null,
+      "adjacencies": {
+        "NAR": null,
+        "WES": null,
+        "SPR": null,
+        "UNT": null,
+        "BIS": null,
+        "MA8": null,
+        "MA11": null
+      }
+    },
+    {
+      "name": "SPR",
+      "type": "COASTAL",
+      "homeNation": "ENGLAND",
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "MAS": null,
+        "WES": null,
+        "MA7": null,
+        "UNT": null,
+        "SHU": null
+      }
+    },
+    {
+      "name": "NAR",
+      "type": "COASTAL",
+      "homeNation": "ENGLAND",
+      "supplyCenter": false,
+      "coasts": null,
+      "adjacencies": {
+        "POU": null,
+        "WES": null,
+        "SHU": null,
+        "MA11": null,
+        "MA10": null,
+        "MA12": null
+      }
+    },
+    {
+      "name": "WES",
+      "type": "COASTAL",
+      "homeNation": "ENGLAND",
+      "supplyCenter": true,
+      "coasts": null,
+      "adjacencies": {
+        "MA13": null,
+        "LAO": null,
+        "SAS": null,
+        "MAS": null,
+        "SPR": null,
+        "SHU": null,
+        "NAR": null,
+        "POU": null
+      }
+    }
+  ],
+  "initialSupplyCenters": {
+    "ENGLAND": [
+      "BIS",
+      "SHU",
+      "POU",
+      "WES"
+    ],
+    "FRANCE": [
+      "PER",
+      "TEP",
+      "SUN"
+    ]
+  },
+  "initialUnits": [
+    {
+      "nation": "ENGLAND",
+      "units": [
+        {
+          "nation": "ENGLAND",
+          "unitType": "FLEET",
+          "province": "BIS"
+        },
+        {
+          "nation": "ENGLAND",
+          "unitType": "ARMY",
+          "province": "SHU"
+        },
+        {
+          "nation": "ENGLAND",
+          "unitType": "ARMY",
+          "province": "WES"
+        },
+        {
+          "nation": "ENGLAND",
+          "unitType": "FLEET",
+          "province": "POU"
+        }
+      ]
+    },
+    {
+      "nation": "FRANCE",
+      "units": [
+        {
+          "nation": "FRANCE",
+          "unitType": "ARMY",
+          "province": "SUN"
+        },
+        {
+          "nation": "FRANCE",
+          "unitType": "FLEET",
+          "province": "SAS"
+        },
+        {
+          "nation": "FRANCE",
+          "unitType": "FLEET",
+          "province": "PER"
+        }
+      ]
+    }
+  ]
+}

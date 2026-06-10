@@ -6,6 +6,7 @@ import {
   getNationColor,
   getProvinceCenter,
   getAllProvinceCenters,
+  buildNationColorsFromSvg,
   renderUnit,
   addArrow,
   svgNs,
@@ -117,6 +118,8 @@ export default function GameDetail() {
     if (!svg) return
 
     svg.querySelectorAll('.game-overlay').forEach((el) => el.remove())
+
+    buildNationColorsFromSvg(svg, g.provinceOwnership ?? {})
 
     for (const [province, nation] of Object.entries(g.provinceOwnership ?? {})) {
       if (g.provinceTypes[province] === 'SEA') continue

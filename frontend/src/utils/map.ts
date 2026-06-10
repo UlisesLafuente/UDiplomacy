@@ -12,6 +12,32 @@ export const NATION_COLORS: Record<string, string> = {
   AUSTRIA: '#9b59b6',
 }
 
+const svgNationColors: Record<string, string> = {}
+
+export function buildNationColorsFromSvg(
+  svg: SVGSVGElement,
+  provinceOwnership: Record<string, string>,
+): Record<string, string> {
+  Object.keys(svgNationColors).forEach((k) => delete svgNationColors[k])
+  const seen = new Set<string>()
+  for (const [province, nation] of Object.entries(provinceOwnership ?? {})) {
+    if (seen.has(nation)) continue
+    const path = svg.getElementById(`provincia-${province}`)
+    if (path) {
+      const fill = path.getAttribute('fill') || (path as HTMLElement).style.fill
+      if (fill && fill !== 'none') {
+        svgNationColors[nation] = fill
+        seen.add(nation)
+      }
+    }
+  }
+  return svgNationColors
+}
+
+export function getNationColor(nation: string): string {
+  return svgNationColors[nation] || NATION_COLORS[nation] || nationColor(nation)
+}
+
 const FLAGS: Record<string, string> = {
   ENGLAND: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}',
   FRANCE: '\u{1F1EB}\u{1F1F7}',
@@ -24,10 +50,6 @@ const FLAGS: Record<string, string> = {
 
 function getNationFlag(nation: string): string | undefined {
   return FLAGS[nation]
-}
-
-export function getNationColor(nation: string): string {
-  return NATION_COLORS[nation] || nationColor(nation)
 }
 
 function nationColor(name: string): string {
