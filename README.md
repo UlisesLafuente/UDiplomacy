@@ -86,12 +86,21 @@ npm install
 npm run dev      # Sirve en :5173 con proxy a backend :8080
 ```
 
-### Docker (producción)
+### Docker (producción — vía GHCR)
 
 ```bash
-docker compose up --build
+docker compose up -d
 # Frontend: http://localhost
 # Backend:  http://localhost:8080/api/
+```
+
+Las imágenes backend y frontend se descargan automáticamente de
+`ghcr.io/uliseslafuente/udiplomacy`.
+
+### Docker (desarrollo — build local)
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
 ### Usuario admin por defecto

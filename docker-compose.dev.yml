@@ -34,7 +34,9 @@ services:
       retries: 5
 
   backend:
-    image: ghcr.io/uliseslafuente/udiplomacy:backend-latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: udiplomacy-backend
     restart: unless-stopped
     ports:
@@ -51,7 +53,9 @@ services:
       - udiplomacy-net
 
   frontend:
-    image: ghcr.io/uliseslafuente/udiplomacy:frontend-latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: udiplomacy-frontend
     restart: unless-stopped
     ports:
