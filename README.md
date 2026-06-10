@@ -1,5 +1,7 @@
 # UDiplomacy
 
+![Screenshot](doc/screenshot_diplomacy_worldVariant.png)
+
 Implementación del juego de mesa **Diplomacy** con variantes personalizadas,
 regla colonial opcional y un mapa SVG interactivo con zoom y paneo.
 
