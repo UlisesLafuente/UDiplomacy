@@ -74,7 +74,7 @@ class CreateGameServiceTest {
     void createsGameWithMapId() {
         when(mapVariantRepository.findById("europe-classic"))
                 .thenReturn(java.util.Optional.of(
-                        new MapVariant("europe-classic", "Classic", mapJson, null, null)));
+                        new MapVariant("europe-classic", "Classic", mapJson, null, false, null)));
 
         Game game = service.execute("europe-classic", null, "user-1");
 

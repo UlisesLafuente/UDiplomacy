@@ -13,6 +13,7 @@ public class MongoMapVariantEntity {
     private String name;
     private String mapJson;
     private String svgContent;
+    private boolean colonialRule;
     private Instant createdAt;
 
     public MongoMapVariantEntity() {}
@@ -22,11 +23,12 @@ public class MongoMapVariantEntity {
         this.name = variant.name();
         this.mapJson = variant.mapJson();
         this.svgContent = variant.svgContent();
+        this.colonialRule = variant.colonialRule();
         this.createdAt = variant.createdAt();
     }
 
     public MapVariant toDomain() {
-        return new MapVariant(id, name, mapJson, svgContent, createdAt);
+        return new MapVariant(id, name, mapJson, svgContent, colonialRule, createdAt);
     }
 
     public String getId() { return id; }
@@ -37,6 +39,8 @@ public class MongoMapVariantEntity {
     public void setMapJson(String mapJson) { this.mapJson = mapJson; }
     public String getSvgContent() { return svgContent; }
     public void setSvgContent(String svgContent) { this.svgContent = svgContent; }
+    public boolean isColonialRule() { return colonialRule; }
+    public void setColonialRule(boolean colonialRule) { this.colonialRule = colonialRule; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }

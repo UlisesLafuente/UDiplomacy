@@ -10,6 +10,7 @@ export default function AdminMaps() {
   const [name, setName] = useState('')
   const [mapJsonFile, setMapJsonFile] = useState<File | null>(null)
   const [svgFile, setSvgFile] = useState<File | null>(null)
+  const [colonialRule, setColonialRule] = useState(false)
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
   const mapJsonRef = useRef<HTMLInputElement>(null)
@@ -29,6 +30,7 @@ export default function AdminMaps() {
       formData.append('name', name)
       formData.append('mapJson', mapJsonFile)
       if (svgFile) formData.append('svgContent', svgFile)
+      formData.append('colonialRule', String(colonialRule))
       await maps.create(formData)
       setName('')
       setMapJsonFile(null)
@@ -96,6 +98,16 @@ export default function AdminMaps() {
           className="mb-3 w-full rounded border px-3 py-2 text-sm"
           onChange={(e) => setSvgFile(e.target.files?.[0] ?? null)}
         />
+
+        <label className="mb-3 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={colonialRule}
+            onChange={(e) => setColonialRule(e.target.checked)}
+            className="rounded"
+          />
+          Colonial rule (unused builds → colonial SC builds)
+        </label>
 
         <button
           type="submit"

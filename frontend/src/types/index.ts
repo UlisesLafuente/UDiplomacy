@@ -59,6 +59,7 @@ export interface Game {
   provinceOwnership: Record<string, string>
   scores: Record<string, number>
   provinceTypes: Record<string, string>
+  colonialRule: boolean
 }
 
 export interface HistoryEntry {
@@ -75,6 +76,8 @@ export interface BuildCapacity {
   buildsAvailable: number
   disbandsRequired: number
   availableProvinces: string[]
+  colonialBuildsAvailable: number
+  colonialProvinces: string[]
 }
 
 export interface RetreatOptionsResponse {
@@ -101,6 +104,7 @@ export interface MapVariant {
   id: string
   name: string
   svgContent: string | null
+  colonialRule: boolean
   createdAt: string
 }
 

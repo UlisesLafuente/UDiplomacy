@@ -51,10 +51,11 @@ public class MapVariantController {
     public ResponseEntity<MapVariantResponse> createMap(
             @RequestParam("name") String name,
             @RequestParam("mapJson") MultipartFile mapJsonFile,
-            @RequestParam(value = "svgContent", required = false) MultipartFile svgContentFile) throws IOException {
+            @RequestParam(value = "svgContent", required = false) MultipartFile svgContentFile,
+            @RequestParam(value = "colonialRule", defaultValue = "false") boolean colonialRule) throws IOException {
         String mapJson = new String(mapJsonFile.getBytes());
         String svgContent = svgContentFile != null ? new String(svgContentFile.getBytes()) : null;
-        var variant = createMapVariantUseCase.execute(name, mapJson, svgContent);
+        var variant = createMapVariantUseCase.execute(name, mapJson, svgContent, colonialRule);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(MapVariantResponse.full(variant));
     }

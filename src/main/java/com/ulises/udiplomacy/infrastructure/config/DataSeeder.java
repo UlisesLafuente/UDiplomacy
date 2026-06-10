@@ -60,7 +60,7 @@ public class DataSeeder implements CommandLineRunner {
             }
             MapVariant variant = new MapVariant(
                     DEFAULT_MAP_ID, "Classic Diplomacy Europe",
-                    json, svgContent, Instant.now());
+                    json, svgContent, false, Instant.now());
             mapRepository.save(variant);
             log.info("Seeded default map '{}'", DEFAULT_MAP_ID);
         } catch (Exception e) {

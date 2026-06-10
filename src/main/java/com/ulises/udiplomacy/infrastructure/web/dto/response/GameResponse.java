@@ -24,7 +24,8 @@ public record GameResponse(
         List<BuildCapacityResponse> buildCapacities,
         Map<String, String> provinceOwnership,
         Map<String, Integer> scores,
-        Map<String, String> provinceTypes
+        Map<String, String> provinceTypes,
+        boolean colonialRule
 ) {
     public static GameResponse from(Game game) {
         var lastResolved = game.turnHistory().isEmpty()
@@ -54,8 +55,20 @@ public record GameResponse(
         var buildCapacities = game.nations().stream()
                 .map(n -> {
                     var opts = game.getBuildOptions(n);
-                    var availableProvinces = game.gameMap().homeCentersFor(n).stream()
+                    var homeProvinces = game.gameMap().homeCentersFor(n).stream()
                             .map(Province::name)
+                            .filter(p -> game.currentTurn().units().stream()
+                                    .noneMatch(u -> u.location().provinceName().equals(p)))
+                            .sorted()
+                            .toList();
+                    var homeCenterNames = game.gameMap().homeCentersFor(n).stream()
+                            .map(Province::name)
+                            .collect(java.util.stream.Collectors.toSet());
+                    var colonialProvinces = game.gameMap().supplyCenters().stream()
+                            .map(Province::name)
+                            .filter(p -> game.provinceOwnership().getOrDefault(p, null) != null
+                                    && game.provinceOwnership().get(p).equals(n))
+                            .filter(p -> !homeCenterNames.contains(p))
                             .filter(p -> game.currentTurn().units().stream()
                                     .noneMatch(u -> u.location().provinceName().equals(p)))
                             .sorted()
@@ -64,7 +77,9 @@ public record GameResponse(
                             n.name(),
                             opts.buildsAllowed(),
                             opts.disbandsRequired(),
-                            availableProvinces
+                            homeProvinces,
+                            opts.colonialBuildsAvailable(),
+                            colonialProvinces
                     );
                 })
                 .toList();
@@ -104,7 +119,8 @@ public record GameResponse(
                 buildCapacities,
                 ownership,
                 scores,
-                provinceTypes
+                provinceTypes,
+                game.colonialRule()
         );
     }
 
@@ -134,5 +150,6 @@ public record GameResponse(
     }
 
     public record BuildCapacityResponse(String nation, int buildsAvailable, int disbandsRequired,
-                                         List<String> availableProvinces) {}
+                                         List<String> availableProvinces, int colonialBuildsAvailable,
+                                         List<String> colonialProvinces) {}
 }

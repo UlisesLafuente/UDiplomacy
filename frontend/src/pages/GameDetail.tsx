@@ -32,7 +32,32 @@ export default function GameDetail() {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null)
   const [syntaxTooltip, setSyntaxTooltip] = useState<{ x: number; y: number } | null>(null)
 
-  const handleSvgMouseMove = (e: React.MouseEvent) => {
+  const handleSvgMouseLeave = () => setTooltip(null)
+
+  // Zoom / Pan state
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const isPanningRef = useRef(false)
+  const panStartRef = useRef({ x: 0, y: 0 })
+  const [isPanning, setIsPanning] = useState(false)
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault()
+    const factor = e.deltaY > 0 ? 0.9 : 1.1
+    setZoom((prev) => Math.max(0.3, Math.min(5, prev * factor)))
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 1) {
+      e.preventDefault()
+      isPanningRef.current = true
+      panStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }
+      setIsPanning(true)
+    }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
     const target = e.target as Element
     const unitGroup = target.closest('[data-unit-label]') as HTMLElement | null
     if (unitGroup) {
@@ -42,7 +67,23 @@ export default function GameDetail() {
     }
   }
 
-  const handleSvgMouseLeave = () => setTooltip(null)
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isPanningRef.current) {
+        setPan({ x: e.clientX - panStartRef.current.x, y: e.clientY - panStartRef.current.y })
+      }
+    }
+    const handleGlobalMouseUp = () => {
+      isPanningRef.current = false
+      setIsPanning(false)
+    }
+    window.addEventListener('mousemove', handleGlobalMouseMove)
+    window.addEventListener('mouseup', handleGlobalMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove)
+      window.removeEventListener('mouseup', handleGlobalMouseUp)
+    }
+  }, [])
 
   // Build panel state: map of nation -> array of build/disband orders
   interface BuildEntry {
@@ -299,6 +340,15 @@ export default function GameDetail() {
     )
   }
 
+  const freeColonialProvinces = (nation: string) => {
+    if (!game) return []
+    const bc = game.buildCapacities.find((b) => b.nation === nation)
+    if (!bc) return []
+    return bc.colonialProvinces.filter(
+      (p) => !game!.units.some((u) => u.province === p)
+    )
+  }
+
   const scores = useMemo(() => {
     if (!game) return []
     const unitCount: Record<string, number> = {}
@@ -343,14 +393,31 @@ export default function GameDetail() {
       <div className="flex flex-1 overflow-hidden">
         {/* Map + score */}
         <div className="flex flex-1 flex-col bg-gray-50">
-          <div className="flex-1 overflow-auto" onMouseMove={handleSvgMouseMove} onMouseLeave={handleSvgMouseLeave}>
-            <svg
-              ref={svgRef}
-              className="h-full w-full block"
-              viewBox="0 0 3044 2401"
-              preserveAspectRatio="xMidYMid meet"
-              style={{ minHeight: '600px', background: '#e8f4e8' }}
-            />
+          <div
+            ref={mapContainerRef}
+            className="flex-1 overflow-hidden"
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleSvgMouseLeave}
+            style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
+          >
+            <div
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: '0 0',
+                width: '100%',
+                height: '100%',
+              }}
+            >
+              <svg
+                ref={svgRef}
+                className="block"
+                viewBox="0 0 3044 2401"
+                preserveAspectRatio="xMidYMid meet"
+                style={{ minHeight: '600px', width: '100%', background: '#e8f4e8' }}
+              />
+            </div>
             {tooltip && (
               <div
                 className="pointer-events-none fixed z-50 rounded bg-gray-800 px-2 py-1 text-xs font-mono text-white shadow-lg"
@@ -490,17 +557,22 @@ export default function GameDetail() {
               {/* Build panel */}
               {game.phase === 'BUILD' && (
                 <div className="mb-4 rounded border border-purple-200 bg-purple-50 p-3">
-                  <h3 className="mb-2 text-sm font-semibold text-purple-800">Builds / Disbands</h3>
+                  <h3 className="mb-2 text-sm font-semibold text-purple-800">
+                    Builds / Disbands
+                    {game.colonialRule && <span className="ml-2 text-xs font-normal text-purple-600">(colonial rule)</span>}
+                  </h3>
                   {game.buildCapacities.map((bc) => {
                     const entries = buildSelections[bc.nation] ?? []
                     const units = nationUnits(bc.nation)
                     const freeHomes = freeHomeProvinces(bc.nation)
+                    const freeColonial = freeColonialProvinces(bc.nation)
                     return (
                       <div key={bc.nation} className="mb-3 rounded border border-purple-100 bg-white p-2">
                         <div className="mb-1 flex items-center justify-between">
                           <span className="text-xs font-bold text-gray-700">{bc.nation}</span>
                           <span className="text-xs text-gray-500">
                             {bc.buildsAvailable > 0 && `+${bc.buildsAvailable} `}
+                            {bc.colonialBuildsAvailable > 0 && `+${bc.colonialBuildsAvailable}c `}
                             {bc.disbandsRequired > 0 && `-${bc.disbandsRequired} `}
                           </span>
                         </div>
@@ -518,7 +590,15 @@ export default function GameDetail() {
                                 <option value="">(build)</option>
                                 {freeHomes.map((p) => {
                                   return (
-                                    <optgroup key={p} label={p}>
+                                    <optgroup key={`home-${p}`} label={`${p} (home)`}>
+                                      <option value={`A ${p}`}>A {p}</option>
+                                      <option value={`F ${p}`}>F {p}</option>
+                                    </optgroup>
+                                  )
+                                })}
+                                {bc.colonialBuildsAvailable > 0 && freeColonial.map((p) => {
+                                  return (
+                                    <optgroup key={`col-${p}`} label={`${p} (colonial)`}>
                                       <option value={`A ${p}`}>A {p}</option>
                                       <option value={`F ${p}`}>F {p}</option>
                                     </optgroup>
@@ -551,7 +631,7 @@ export default function GameDetail() {
                           </div>
                         ))}
                         <div className="flex gap-1">
-                          {bc.buildsAvailable > 0 && (
+                          {(bc.buildsAvailable > 0 || bc.colonialBuildsAvailable > 0) && (
                             <button
                               onClick={() => addBuildEntry(bc.nation)}
                               className="rounded bg-purple-100 px-2 py-0.5 text-xs text-purple-700 hover:bg-purple-200"

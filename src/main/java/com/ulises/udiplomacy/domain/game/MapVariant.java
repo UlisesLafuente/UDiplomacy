@@ -8,13 +8,15 @@ public final class MapVariant {
     private final String name;
     private final String mapJson;
     private final String svgContent;
+    private final boolean colonialRule;
     private final Instant createdAt;
 
-    public MapVariant(String id, String name, String mapJson, String svgContent, Instant createdAt) {
+    public MapVariant(String id, String name, String mapJson, String svgContent, boolean colonialRule, Instant createdAt) {
         this.id = id;
         this.name = name;
         this.mapJson = mapJson;
         this.svgContent = svgContent;
+        this.colonialRule = colonialRule;
         this.createdAt = createdAt;
     }
 
@@ -22,6 +24,7 @@ public final class MapVariant {
     public String name() { return name; }
     public String mapJson() { return mapJson; }
     public String svgContent() { return svgContent; }
+    public boolean colonialRule() { return colonialRule; }
     public Instant createdAt() { return createdAt; }
 
     @Override

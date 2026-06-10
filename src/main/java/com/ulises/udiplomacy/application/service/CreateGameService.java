@@ -45,13 +45,22 @@ public class CreateGameService implements CreateGameUseCase {
             throw new IllegalArgumentException("Admin accounts cannot create games");
         }
         try {
-            String json = resolveMapJson(mapId, mapJson);
+            boolean colonialRule = false;
+            String json;
+            if (mapId != null) {
+                var variant = mapVariantRepository.findById(mapId)
+                        .orElseThrow(() -> new IllegalArgumentException("Map variant not found: " + mapId));
+                json = variant.mapJson();
+                colonialRule = variant.colonialRule();
+            } else {
+                json = mapJson;
+            }
             Map<String, Object> root = objectMapper.readValue(json, new TypeReference<>() {});
             GameMap gameMap = parseMap(root, mapId);
             Set<Nation> nations = extractNations(gameMap);
 
             String gameId = UUID.randomUUID().toString();
-            Game game = new Game(gameId, gameMap, nations);
+            Game game = new Game(gameId, gameMap, nations, colonialRule);
 
             List<Unit> initialUnits = parseInitialUnits(root);
             game.start(initialUnits);
@@ -65,15 +74,6 @@ public class CreateGameService implements CreateGameUseCase {
         } catch (Exception e) {
             throw new RuntimeException("Failed to create game", e);
         }
-    }
-
-    private String resolveMapJson(String mapId, String mapJson) {
-        if (mapId != null) {
-            return mapVariantRepository.findById(mapId)
-                    .orElseThrow(() -> new IllegalArgumentException("Map variant not found: " + mapId))
-                    .mapJson();
-        }
-        return mapJson;
     }
 
     private GameMap parseMap(Map<String, Object> root, String mongoId) {

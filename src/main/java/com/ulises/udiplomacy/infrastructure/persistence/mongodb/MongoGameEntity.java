@@ -20,6 +20,8 @@ public class MongoGameEntity {
     private String winner;
     private MongoDislodgementData dislodgement;
     private Map<String, String> provinceOwnership;
+    private boolean colonialRule;
+    private Map<String, Integer> unusedBuilds;
 
     public MongoGameEntity() {}
 
@@ -38,6 +40,11 @@ public class MongoGameEntity {
         for (var entry : game.provinceOwnership().entrySet()) {
             this.provinceOwnership.put(entry.getKey(), entry.getValue().name());
         }
+        this.colonialRule = game.colonialRule();
+        this.unusedBuilds = new HashMap<>();
+        for (var entry : game.unusedBuilds().entrySet()) {
+            this.unusedBuilds.put(entry.getKey().name(), entry.getValue());
+        }
     }
 
     public Game toDomain() {
@@ -46,7 +53,7 @@ public class MongoGameEntity {
         if (nations != null) {
             nations.forEach(n -> nationSet.add(new Nation(n)));
         }
-        Game game = new Game(id, gameMap, nationSet);
+        Game game = new Game(id, gameMap, nationSet, colonialRule);
 
         GameState restoredState = state != null ? GameState.valueOf(state) : GameState.WAITING;
         Turn restoredCurrentTurn = currentTurn != null ? currentTurn.toDomain() : null;
@@ -65,13 +72,26 @@ public class MongoGameEntity {
             }
         }
 
+        Map<Nation, Integer> restoredUnusedBuilds = new HashMap<>();
+        if (unusedBuilds != null) {
+            for (var entry : unusedBuilds.entrySet()) {
+                restoredUnusedBuilds.put(new Nation(entry.getKey()), entry.getValue());
+            }
+        }
+
         game.restore(restoredState, restoredCurrentTurn, restoredHistory,
                 restoredPool,
                 dislodgement != null ? dislodgement.toDomain() : null,
                 restoredWinner,
                 restoredOwnership);
+        game.restoreUnusedBuilds(restoredUnusedBuilds);
         return game;
     }
+
+    public boolean isColonialRule() { return colonialRule; }
+    public void setColonialRule(boolean colonialRule) { this.colonialRule = colonialRule; }
+    public Map<String, Integer> getUnusedBuilds() { return unusedBuilds; }
+    public void setUnusedBuilds(Map<String, Integer> unusedBuilds) { this.unusedBuilds = unusedBuilds; }
 
     // --- MongoDislodgementData ---
 

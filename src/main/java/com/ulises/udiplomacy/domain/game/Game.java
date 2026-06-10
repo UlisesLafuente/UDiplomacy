@@ -32,8 +32,14 @@ public final class Game {
     private Nation winner;
     private final List<DomainEvent> events;
     private final Map<String, Nation> provinceOwnership;
+    private final boolean colonialRule;
+    private Map<Nation, Integer> unusedBuilds;
 
     public Game(String gameId, GameMap gameMap, Set<Nation> nations) {
+        this(gameId, gameMap, nations, false);
+    }
+
+    public Game(String gameId, GameMap gameMap, Set<Nation> nations, boolean colonialRule) {
         this.gameId = gameId;
         this.gameMap = gameMap;
         this.nations = new HashSet<>(nations);
@@ -43,6 +49,8 @@ public final class Game {
         this.events = new ArrayList<>();
         this.currentTurn = new Turn(Season.SPRING, 1901, Phase.ORDERS, List.of());
         this.provinceOwnership = new HashMap<>();
+        this.colonialRule = colonialRule;
+        this.unusedBuilds = new HashMap<>();
     }
 
     public void start(List<Unit> initialUnits) {
@@ -266,6 +274,18 @@ public final class Game {
             }
         }
 
+        // Pre-compute buildsAllowed per nation
+        Map<Nation, Integer> buildsAllowedPerNation = new HashMap<>();
+        Map<Nation, Integer> homeBuildsExecuted = new HashMap<>();
+        for (Nation n : nations) {
+            long controlledSCs = countControlledSupplyCenters().getOrDefault(n, 0L);
+            long deployedUnits = currentTurn.units().stream()
+                    .filter(u -> u.nation().equals(n))
+                    .count();
+            buildsAllowedPerNation.put(n, (int) Math.max(0, controlledSCs - deployedUnits));
+            homeBuildsExecuted.put(n, 0);
+        }
+
         Map<String, Unit> actualUnitsByProvince = new HashMap<>();
         for (Unit u : currentTurn.units()) {
             actualUnitsByProvince.put(u.location().provinceName(), u);
@@ -280,15 +300,43 @@ public final class Game {
                     var prov = gameMap.province(target.provinceName()).orElse(null);
                     if (prov == null || !prov.isSupplyCenter()) return;
                     if (order.unit().unitType() != UnitType.ARMY && !prov.isCoastal()) return;
+
                     Nation nation = null;
+                    boolean isHomeBuild = false;
+                    boolean isColonialBuild = false;
+
                     for (Nation n : nations) {
                         if (gameMap.homeCentersFor(n).stream()
                                 .anyMatch(p -> p.name().equals(target.provinceName()))) {
                             nation = n;
+                            isHomeBuild = true;
                             break;
                         }
                     }
+
+                    if (nation == null && colonialRule) {
+                        Nation owner = provinceOwnership.get(target.provinceName());
+                        if (owner != null && unusedBuilds.getOrDefault(owner, 0) > 0) {
+                            nation = owner;
+                            isColonialBuild = true;
+                        }
+                    }
+
                     if (nation == null) return;
+
+                    if (isHomeBuild) {
+                        int built = homeBuildsExecuted.getOrDefault(nation, 0);
+                        int allowed = buildsAllowedPerNation.getOrDefault(nation, 0);
+                        if (built >= allowed) return;
+                        homeBuildsExecuted.put(nation, built + 1);
+                    }
+
+                    if (isColonialBuild) {
+                        int remaining = unusedBuilds.getOrDefault(nation, 0);
+                        if (remaining <= 0) return;
+                        unusedBuilds.put(nation, remaining - 1);
+                    }
+
                     var newUnit = new Unit(order.unit().unitType(), nation,
                             new Territory(target.provinceName()));
                     newUnits.add(newUnit);
@@ -304,6 +352,16 @@ public final class Game {
                 }
             }
         }
+
+        // Compute new unusedBuilds for next turn
+        Map<Nation, Integer> nextUnusedBuilds = new HashMap<>();
+        for (Nation n : nations) {
+            int allowed = buildsAllowedPerNation.getOrDefault(n, 0);
+            int executed = homeBuildsExecuted.getOrDefault(n, 0);
+            nextUnusedBuilds.put(n, Math.max(0, allowed - executed));
+        }
+        this.unusedBuilds = nextUnusedBuilds;
+
         if (!buildLog.isEmpty()) {
             log.info("Game {} | Builds: {}", gameId, String.join(", ", buildLog));
         }
@@ -450,7 +508,8 @@ public final class Game {
                 .filter(u -> u.nation().equals(nation))
                 .count();
         int diff = (int) (controlledSCs - deployedUnits);
-        return new BuildCapacity(nation, Math.max(0, diff), Math.max(0, -diff));
+        int colonial = colonialRule ? unusedBuilds.getOrDefault(nation, 0) : 0;
+        return new BuildCapacity(nation, Math.max(0, diff), Math.max(0, -diff), Math.max(0, colonial));
     }
 
     public Map<Nation, Long> countControlledSupplyCenters() {
@@ -512,6 +571,22 @@ public final class Game {
         if (provinceOwnership != null) {
             this.provinceOwnership.putAll(provinceOwnership);
         }
+        if (this.unusedBuilds == null) {
+            this.unusedBuilds = new HashMap<>();
+        }
+    }
+
+    public void restoreUnusedBuilds(Map<Nation, Integer> unusedBuilds) {
+        this.unusedBuilds.clear();
+        if (unusedBuilds != null) {
+            this.unusedBuilds.putAll(unusedBuilds);
+        }
+    }
+
+    public boolean colonialRule() { return colonialRule; }
+
+    public Map<Nation, Integer> unusedBuilds() {
+        return Collections.unmodifiableMap(unusedBuilds);
     }
 
     public Map<String, Nation> provinceOwnership() {

@@ -17,10 +17,10 @@ public class CreateMapVariantService implements CreateMapVariantUseCase {
     }
 
     @Override
-    public MapVariant execute(String name, String mapJson, String svgContent) {
+    public MapVariant execute(String name, String mapJson, String svgContent, boolean colonialRule) {
         svgValidator.validate(svgContent, mapJson);
         String id = UUID.randomUUID().toString();
-        MapVariant variant = new MapVariant(id, name, mapJson, svgContent, Instant.now());
+        MapVariant variant = new MapVariant(id, name, mapJson, svgContent, colonialRule, Instant.now());
         repository.save(variant);
         return variant;
     }
