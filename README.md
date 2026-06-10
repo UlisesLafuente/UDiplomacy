@@ -350,40 +350,6 @@ udiplomacy/
 | `/admin/games` | Admin | Gestión de partidas |
 | `/admin/maps` | Admin | Gestión de variantes de mapa |
 
-## Review y observaciones para v1.0
-
-### Fortalezas
-
-- **Arquitectura hexagonal limpia**: dominio sin dependencias de framework,
-  separación clara de capas, puertos y adaptadores bien definidos
-- **Modelo de dominio rico**: `Game` encapsula invariantes (transiciones de estado,
-  detección de victoria, validación de construcciones, auto-fill de holds)
-- **CQRS efectivo**: MongoDB para escritura del agregado, PostgreSQL para
-  consultas optimizadas
-- **Soporte de variantes**: sistema completo de variantes con JSON, SVG,
-  regla colonial y herramientas Python
-- **Adyacencias costeras**: implementación correcta con soporte de costas
-  múltiples y `shareSeaNeighbor()`
-- **Cobertura de tests**: 18 tests backend incluyendo simulación de partida
-  completa, resolución de conflictos, parser de órdenes
-- **Contenerización**: builds multi-stage con health checks
-
-### Áreas de mejora
-
-| Área | Problema | Recomendación |
-|------|----------|---------------|
-| **Frontend** | `GameDetail.tsx` tiene 798 líneas | Dividir en componentes (MapView, OrderPanel, Sidebar, BuildPanel) |
-| **Frontend** | Sin componentes compartidos | Extraer Navbar, Loading, ConfirmDialog, Toast |
-| **Frontend** | 1 solo test | Añadir tests de páginas principales (Login, Games, Admin) |
-| **Frontend** | Sin spinners/loading states | Añadir indicadores de carga en operaciones asíncronas |
-| **Frontend** | Sin confirmaciones | Añadir diálogos de confirmación para borrar partidas/usuarios |
-| **Backend** | JWT secret en properties | Mover a variable de entorno (`APP_JWT_SECRET`) |
-| **Backend** | Context load test deshabilitado | Arreglar y habilitar `@Disabled` |
-| **Backend** | Sin rate limiting | Añadir protección contra fuerza bruta en `/api/auth/` |
-| **Infra** | Sin CI/CD | Añadir GitHub Actions (build, test, lint) |
-| **Infra** | Sin Swagger/OpenAPI | Documentar endpoints con springdoc-openapi |
-| **Infra** | Sin HTTPS | Configurar TLS en Nginx para producción |
-| **Infra** | Sin health endpoint | Añadir `/api/health` con estado de bases de datos |
 
 ## Licencia
 
