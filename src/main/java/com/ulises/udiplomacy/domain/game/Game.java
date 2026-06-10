@@ -63,6 +63,10 @@ public final class Game {
         for (Unit u : initialUnits) {
             provinceOwnership.put(u.location().provinceName(), u.nation());
         }
+        for (Province province : gameMap.provinces().values()) {
+            province.homeNation().ifPresent(nation ->
+                provinceOwnership.putIfAbsent(province.name(), nation));
+        }
         events.add(new GameStarted(gameId, new HashSet<>(nations)));
         log.info("Game {} started. Spring 1901. Nations: {}. Units: {}",
                 gameId, nations, initialUnits.size());

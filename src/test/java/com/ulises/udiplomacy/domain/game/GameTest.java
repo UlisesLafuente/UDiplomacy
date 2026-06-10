@@ -351,11 +351,12 @@ class GameTest {
 
     @Test
     void getBuildOptions_returnsDisbandsWhenMoreUnitsThanSCs() {
-        // England controls LON (SC), EDI (SC) with 3 units -> 1 disband, 0 builds
+        // England controls LON, EDI, LVP (3 home SCs) with 4 units -> 1 disband, 0 builds
         game.start(List.of(
                 new Unit(UnitType.ARMY, england, new Territory("LON")),
                 new Unit(UnitType.FLEET, england, new Territory("EDI")),
-                new Unit(UnitType.ARMY, england, new Territory("CLY"))
+                new Unit(UnitType.ARMY, england, new Territory("CLY")),
+                new Unit(UnitType.ARMY, england, new Territory("YOR"))
         ));
         BuildCapacity capacity = game.getBuildOptions(england);
         assertEquals(england, capacity.nation());
@@ -365,9 +366,12 @@ class GameTest {
 
     @Test
     void getBuildOptions_disbandsWhenMoreUnitsThanSCs() {
+        // England controls LON, EDI, LVP (3 home SCs) with 4 units -> 1 disband, 0 builds
         game.start(List.of(
                 new Unit(UnitType.ARMY, england, new Territory("LON")),
-                new Unit(UnitType.ARMY, england, new Territory("YOR"))
+                new Unit(UnitType.ARMY, england, new Territory("EDI")),
+                new Unit(UnitType.ARMY, england, new Territory("YOR")),
+                new Unit(UnitType.ARMY, england, new Territory("CLY"))
         ));
         BuildCapacity capacity = game.getBuildOptions(england);
         assertEquals(1, capacity.disbandsRequired());
@@ -408,9 +412,9 @@ class GameTest {
     // --- countControlledSupplyCenters ---
 
     @Test
-    void countControlledSupplyCenters_emptyWhenNoUnits() {
+    void countControlledSupplyCenters_allHomeSCsOwnedAtStart() {
         game.start(List.of());
-        assertEquals(0, game.countControlledSupplyCenters().values().stream()
+        assertEquals(22, game.countControlledSupplyCenters().values().stream()
                 .mapToLong(Long::longValue).sum());
     }
 
@@ -418,11 +422,11 @@ class GameTest {
     void countControlledSupplyCenters_countsOwnedSCs() {
         game.start(List.of(
                 new Unit(UnitType.ARMY, england, new Territory("LON")),
-                new Unit(UnitType.ARMY, england, new Territory("PAR")) // PAR is owned by France in map but unit is English
+                new Unit(UnitType.ARMY, england, new Territory("PAR"))
         ));
         var counts = game.countControlledSupplyCenters();
-        assertEquals(2, counts.get(england).longValue());
-        assertEquals(0, counts.get(france).longValue());
+        assertEquals(4, counts.get(england).longValue());
+        assertEquals(2, counts.get(france).longValue());
     }
 
     // --- advancePhase ---
